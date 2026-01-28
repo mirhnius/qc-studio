@@ -328,7 +328,7 @@ for _, row in merged_batch.iterrows():
         st.warning(f"Log file not found for subject {sub_id}.")
 
     # Euler metrics
-    euler_vals = {"Left": row.get("lh_euler"), "Right": row.get("rh_euler")}
+    euler_vals = {"Left": row.get("n_holes-lh_white"), "Right": row.get("n_holes-rh_white")}
     st.markdown(f"<h4>Euler QC (Session {ses_num})</h4>", unsafe_allow_html=True)
     for hemi, val in euler_vals.items():
         euler_key = f"{sub_id}_{ses_id}_euler_{hemi}"
