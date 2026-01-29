@@ -15,6 +15,11 @@ import pandas as pd
 import streamlit as st
 from models import MetricQC, QCRecord
 
+import os
+import streamlit as st
+from niivue_component import niivue_viewer
+
+
 # Debug: show keys on every rerun
 # st.write("Session state before initialized:", st.session_state)
 
@@ -49,6 +54,12 @@ def parse_args(args=None):
               "If provided, SVGs will be taken from this list instead of scanning --fmri_dir."),
         required=False,
     )
+    parser.add_argument(
+        "--mri_list_json",
+        dest="mri_list_json",
+        help=("Optional path to a JSON file containing a list of MRI file paths."),
+        required=False,
+    )
     return parser.parse_args(args)
 
 
@@ -58,6 +69,7 @@ participant_labels = args.participant_labels
 fmri_dir = args.fmri_dir
 out_dir = args.out_dir
 svg_list_json = args.svg_list_json
+mri_list_json = args.mri_list_json
 
 
 participants_df = pd.read_csv(participant_labels, delimiter="\t")
@@ -66,6 +78,77 @@ st.title("fMRIPrep QC")
 rater_name = st.text_input("Rater name:")
 # Show the value dynamically
 st.write("You entered:", rater_name)
+ 
+def load_json(qc_files_json: str) -> Optional[List[Path]]:
+    """
+    Load a JSON file containing a list of SVG file paths.
+    Validates that the top-level structure is a list.
+    Returns a list of Path objects or None if no file provided.
+    """
+    # loaded_svg_list: Optional[List[Path]] = None
+    # if svg_list_json:
+    qc_files_json = Path(qc_files_json)
+    if not qc_files_json.exists():
+        raise FileNotFoundError(f"JSON not found: {qc_files_json}")
+    try:
+        with open(qc_files_json, "r") as fh:
+            raw = json.load(fh)
+    except Exception as e:
+        raise RuntimeError(f"Failed to parse JSON file {qc_files_json}: {e}")
+
+    if not isinstance(raw, list):
+        raise ValueError("JSON must contain a top-level list of file paths")
+
+    # Convert to Path objects (do not verify existence here; downstream handles missing files)
+    loaded_file_list = [Path(p) for p in raw]
+
+    return loaded_file_list
+
+def niivue_viewer_from_path(filepath: str, height: int = 600, key: str | None = None) -> None:
+    """Load a local NIFTI file from `filepath` and display it with `niivue_viewer`.
+
+    This helper reads the file bytes and calls the existing component.
+
+    Args:
+        filepath: Path to a local .nii or .nii.gz file.
+        height: Viewer height in pixels (default 600).
+        key: Optional Streamlit key for the component instance.
+    """
+    if not os.path.isfile(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    with open(filepath, "rb") as f:
+        file_bytes = f.read()
+
+    if key is None:
+        key = f"niivue_viewer_path_{os.path.basename(filepath)}"
+
+    niivue_viewer(
+        nifti_data=file_bytes,
+        filename=os.path.basename(filepath),
+        height=height,        
+        key=key,
+    )
+
+
+# --- Niivue viewer panel (right-side) ---
+# Provides an uploader and a local filepath input to display the niivue viewer
+cols = st.columns([1])
+
+with cols[0]:
+    st.markdown("### Niivue Viewer")
+    # st.container(height=600, border=True).markdown("This is a container with a fixed height of 600px.")
+    
+    # read mri_list_json if provided
+    viewer_path = load_json(mri_list_json)[0] if mri_list_json else None
+    print("viewer_path:", viewer_path)
+
+    try:
+        niivue_viewer_from_path(viewer_path, height=800, key=f"niivue_viewer_path_panel_{os.path.basename(viewer_path)}")
+    except FileNotFoundError:
+        st.error(f"File not found: {viewer_path}")
+    except Exception as e:
+        st.error(f"Failed to load file: {e}")
 
 
 def init_session_state():
@@ -231,9 +314,7 @@ total_rows, current_batch = get_current_batch(
 )
 
 # Save to CSV
-# out_dir = "/projects/ttan/tigrbid-QC/outputs"
 now = datetime.now()
-# timestamp = now.strftime("%Y%m%d")  # e.g., 20250917
 out_file = Path(out_dir) / f"fMRIPrep_QC_status.csv"
 
 # --- Decorator ---
@@ -323,23 +404,12 @@ def get_metrics_from_csv(qc_results: Path, metrics_to_load=None):
 # Load the existing qc_results if exist
 data_dict, get_val = get_metrics_from_csv(out_file)
 
-# If a JSON list of SVGs was provided, load it (validate basic shape)
-loaded_svg_list: Optional[List[Path]] = None
+# If svg_list_json is provided, load the list of SVG paths
+# loaded_svg_list: Optional[List[Path]] = None
 if svg_list_json:
-    svg_json_path = Path(svg_list_json)
-    if not svg_json_path.exists():
-        raise FileNotFoundError(f"SVG list JSON not found: {svg_json_path}")
-    try:
-        with open(svg_json_path, "r") as fh:
-            raw = json.load(fh)
-    except Exception as e:
-        raise RuntimeError(f"Failed to parse JSON file {svg_json_path}: {e}")
-
-    if not isinstance(raw, list):
-        raise ValueError("SVG list JSON must contain a top-level list of file paths")
-
-    # Convert to Path objects (do not verify existence here; downstream handles missing files)
-    loaded_svg_list = [Path(p) for p in raw]
+    print("Loading SVG list from JSON:", svg_list_json)
+    loaded_svg_list = load_json(svg_list_json)
+    print("Loaded SVG list from JSON:", loaded_svg_list)
 
 
 def collect_qc_svgs_from_list(svg_paths_list: List[Path], sub_id: str, pattern: str) -> Dict:
@@ -449,6 +519,8 @@ def display_svg_group(
             name=metric_name,
             qc=qc_choice
         ))
+
+
 # Collect all the current batch subject metrics
 qc_records = []
 for _, row in current_batch.iterrows():
