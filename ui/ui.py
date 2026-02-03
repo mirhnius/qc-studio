@@ -69,11 +69,24 @@ mri_list_json = args.mri_list_json
 
 participants_df = pd.read_csv(participant_labels, delimiter="\t")
 
-st.title("fMRIPrep QC")
+st.title("Welcome to Nipoppy QC-Studio! 🚀")
+
+# add subtitle
+qc_pipeline = "fMRIPrep"
+qc_task = "sdc-wf"
+
+st.subheader(f"QC Pipeline: {qc_pipeline}, QC task: {qc_task}")
+
+# Input for rater name
 rater_name = st.text_input("Rater name:")
+
 # Show the value dynamically
 st.write("You entered:", rater_name)
- 
+
+# Input rater experience as choice box
+options = ["Beginner", "Intermediate", "Expert"]
+experience_level = st.selectbox("Rater experience level:", options)
+st.write("Experience level:", experience_level) 
 
 
 def niivue_viewer_from_path(filepath: str, height: int = 600, key: str | None = None) -> None:
@@ -282,9 +295,9 @@ def display_svg_group(
     ses, task, run are optional; include them to make Streamlit keys unique.
     """
     # with st.container():
-    st.set_page_config(layout="wide")
-    st.markdown(f"<h4> sub-{sub_id} - {qc_name} QC", unsafe_allow_html=True)
-    options = ("PASS", "FAIL", "UNCERTAIN")
+    # st.set_page_config(layout="wide")
+    # st.markdown(f"<h4> sub-{sub_id} - {qc_name} QC", unsafe_allow_html=True)
+    # options = ("PASS", "FAIL", "UNCERTAIN")
 
     for svg_path in svg_list:
         if not svg_path.exists():
@@ -295,27 +308,27 @@ def display_svg_group(
                 st.markdown(f.read(), unsafe_allow_html=True)
             st.write(f"**{svg_path.name}**")
 
-        # Build unique Streamlit key
-        key = f"{sub_id}"
-        if ses: key += f"_{ses}"
-        if task: key += f"_{task}"
-        if run: key += f"_{run}"
-        key += f"_{metric_name}"
+        # # Build unique Streamlit key
+        # key = f"{sub_id}"
+        # if ses: key += f"_{ses}"
+        # if task: key += f"_{task}"
+        # if run: key += f"_{run}"
+        # key += f"_{metric_name}"
 
-        stored_val = None
+        # stored_val = None
 
-        qc_choice = st.radio(
-            f"{qc_name} QC:",
-            options,
-            key=key,
-            label_visibility="collapsed",
-            index=options.index(stored_val) if stored_val in options else None,
-        )
+        # qc_choice = st.radio(
+        #     f"{qc_name} QC:",
+        #     options,
+        #     key=key,
+        #     label_visibility="collapsed",
+        #     index=options.index(stored_val) if stored_val in options else None,
+        # )
 
-        subject_metrics.append(MetricQC(
-            name=metric_name,
-            qc=qc_choice
-        ))
+        # subject_metrics.append(MetricQC(
+        #     name=metric_name,
+        #     qc=qc_choice
+        # ))
 
 
 # Initialize session state
@@ -332,9 +345,10 @@ out_file = Path(out_dir) / f"fMRIPrep_QC_status.csv"
 ## Streamlit UI Layout
 # Top Pagination Controls
 
-cols = st.columns([1])
+# cols = st.columns([2, 1, 1])
+col_niivue, col_montage = st.columns([0.3, 0.7])
 
-with cols[0]:
+with col_niivue:
     st.markdown("### Niivue Viewer")
     
     # read mri_list_json if provided
@@ -377,39 +391,69 @@ for _, row in current_batch.iterrows():
                         (svg_list, qc_name, metric_name)
                     )
     for (ses, task, run), metrics_list in sorted(per_run_bundles.items()):
-        st.markdown(f"### Session: {ses} | Task: {task} | Run: {run}")
+        # st.markdown(f"### Session: {ses} | Task: {task} | Run: {run}")
         run_metrics = []
-        for svg_list, qc_name, metric_name in metrics_list:     
-            display_svg_group(
-                svg_list=svg_list,
-                sub_id=sub_id,
-                qc_name=qc_name,
-                metric_name=metric_name,
-                subject_metrics=run_metrics,
-                ses=ses,
-                task=task,
-                run=run
+        for svg_list, qc_name, metric_name in metrics_list:  
+            with col_montage:   
+                st.markdown("### Montage Viewer")
+                display_svg_group(
+                    svg_list=svg_list,
+                    sub_id=sub_id,
+                    qc_name=qc_name,
+                    metric_name=metric_name,
+                    subject_metrics=run_metrics,
+                    ses=ses,
+                    task=task,
+                    run=run
+                )
+            
+            # Rate
+            st.set_page_config(layout="wide")
+            st.markdown(f"<h4> sub-{sub_id} - {qc_name} QC", unsafe_allow_html=True)
+            options = ("PASS", "FAIL", "UNCERTAIN")
+
+             # Build unique Streamlit key
+            key = f"{sub_id}"
+            if ses: key += f"_{ses}"
+            if task: key += f"_{task}"
+            if run: key += f"_{run}"
+            key += f"_{metric_name}"
+
+            stored_val = None
+
+            qc_choice = st.radio(
+                f"{qc_name} QC:",
+                options,
+                key=key,
+                label_visibility="collapsed",
+                index=options.index(stored_val) if stored_val in options else None,
             )
-        # --- Require rerun QC radio ---
-        metric = "require_rerun"
-        # stored_val = get_val(f"sub-{sub_id}", ses, task, run, metric)
-        stored_val = None
-        options = ("YES", "NO")
-        require_rerun = st.radio(
-            f"Require rerun?",
-            options,
-            key=f"{sub_id}_{ses}_{task}_{run}_rerun",
-            index=options.index(stored_val) if stored_val in options else None,
-        )
-        if require_rerun is None:
-            final_qc = None
-        else:
-            final_qc = "FAIL" if require_rerun == "YES" else "PASS"
-        # Notes
-        metric = "notes"
-        # stored_val = get_val(f"sub-{sub_id}", ses, task, run, metric)
-        notes = st.text_input(f"***NOTES***", key=f"{sub_id}_{ses}_{task}_{run}_notes", value=stored_val)
-        run_metrics.append(MetricQC(name="QC_notes", notes=notes))
+
+            run_metrics.append(MetricQC(
+                name=metric_name,
+                qc=qc_choice
+            ))
+
+            # --- Require rerun QC radio ---
+            metric = "require_rerun"
+            # stored_val = get_val(f"sub-{sub_id}", ses, task, run, metric)
+            stored_val = None
+            options = ("YES", "NO")
+            require_rerun = st.radio(
+                f"Require rerun?",
+                options,
+                key=f"{sub_id}_{ses}_{task}_{run}_rerun",
+                index=options.index(stored_val) if stored_val in options else None,
+            )
+            if require_rerun is None:
+                final_qc = None
+            else:
+                final_qc = "FAIL" if require_rerun == "YES" else "PASS"
+            # Notes
+            metric = "notes"
+            # stored_val = get_val(f"sub-{sub_id}", ses, task, run, metric)
+            notes = st.text_input(f"***NOTES***", key=f"{sub_id}_{ses}_{task}_{run}_notes", value=stored_val)
+            run_metrics.append(MetricQC(name="QC_notes", notes=notes))
     
     # Create QCRecord
         record = QCRecord(
