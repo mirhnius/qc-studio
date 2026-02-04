@@ -1,57 +1,53 @@
-import os
-import pickle
-import re
 import json
-from argparse import ArgumentParser
-from datetime import datetime
-from glob import glob
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Set
 import pandas as pd
-from models import MetricQC, QCRecord
+from models import QCConfig
 
 def parse_qc_config(qc_json, qc_task) -> dict:
-	"""Parse a single sample QC JSON file and categorize paths.
+	"""Parse a QC JSON file using the QCConfig Pydantic model.
 
 	Returns a dict with keys:
-	  - 'base_mri_image_path': Path
-	  - 'overlay_mri_image_path': Path
-	  - 'svg_montage_path': Path
-	  - 'iqm_path': Path
+	  - 'base_mri_image_path': Path | None
+	  - 'overlay_mri_image_path': Path | None
+	  - 'svg_montage_path': Path | None
+	  - 'iqm_path': Path | None
 
-	The JSON will be a dict with named paths. If the file
-	doesn't exist or cannot be parsed an empty result is returned.
-	All returned entries are Path objects (not resolved).
+	If the file is missing, invalid, or the requested qc_task is not present,
+	all values will be None. Uses `QCConfig` from `models` for validation.
 	"""
 
 	qc_json_path = Path(qc_json) if qc_json else None
 	print(f"Parsing QC config: {qc_json_path}, task: {qc_task}")
 
-	base_mri_image_path = None
-	overlay_mri_image_path = None
-	svg_montage_path = None
-	iqm_path = None
-
 	try:
-		if qc_json_path and qc_json_path.is_file():
-			raw = json.loads(qc_json_path.read_text())			
-
-			# check if qc_task exists in raw
-			qc_task_dict = raw.get(qc_task, {})			
-
-			if isinstance(qc_task_dict, dict):
-				base_mri_image_path = Path(qc_task_dict.get("base_mri_image_path")) if qc_task_dict.get("base_mri_image_path") else None
-				overlay_mri_image_path = Path(qc_task_dict.get("overlay_mri_image_path")) if qc_task_dict.get("overlay_mri_image_path") else None
-				svg_montage_path = Path(qc_task_dict.get("svg_montage_path")) if qc_task_dict.get("svg_montage_path") else None
-				iqm_path = Path(qc_task_dict.get("iqm_path")) if qc_task_dict.get("iqm_path") else None
+		# Pydantic v2 deprecates `parse_file`; read file and validate JSON string.
+		raw_text = qc_json_path.read_text()
+		qcconf = QCConfig.model_validate_json(raw_text)
 	except Exception:
-		pass
+		# validation/parsing failed
+		return {
+			"base_mri_image_path": None,
+			"overlay_mri_image_path": None,
+			"svg_montage_path": None,
+			"iqm_path": None,
+		}
 
+	# qcconf.root is a dict: qc_task -> QCTask (RootModel)
+	qctask = qcconf.root.get(qc_task)
+	if not qctask:
+		return {
+			"base_mri_image_path": None,
+			"overlay_mri_image_path": None,
+			"svg_montage_path": None,
+			"iqm_path": None,
+		}
+
+	# qctask is a QCTask model; its fields are Path or None already
 	return {
-		"base_mri_image_path": base_mri_image_path,
-		"overlay_mri_image_path": overlay_mri_image_path,
-		"svg_montage_path": svg_montage_path,
-		"iqm_path": iqm_path,
+		"base_mri_image_path": qctask.base_mri_image_path,
+		"overlay_mri_image_path": qctask.overlay_mri_image_path,
+		"svg_montage_path": qctask.svg_montage_path,
+		"iqm_path": qctask.iqm_path,
 	}
 
 
@@ -97,61 +93,71 @@ def load_iqm_data(path_dict: dict) -> dict | None:
 
 
 # TODO : integrate with layout.py
+
 def save_qc_results_to_csv(out_file, qc_records):
-    """
-    Save QC results from Streamlit session state to a CSV file.
+	"""
+	Save QC results from Streamlit session state to a CSV file.
 
-    Parameters
-    ----------
-    out_file : str or Path
-        Path where the CSV will be saved.
-    qc_records : list
-        List of QCRecord objects (or dicts) stored.
-    """
-    out_file = Path(out_file)
-    out_file.parent.mkdir(parents=True, exist_ok=True)
+	This function is resilient to both `QCRecord` model instances and plain
+	dicts. It will extract the canonical fields from the updated `QCRecord`:
+	- qc_task, participant_id, session_id, task_id, run_id, pipeline,
+	  timestamp, rater_id, rater_experience, rater_fatigue, final_qc
 
-    # Flatten metrics dynamically
-    rows = []
+	If a record also contains a `metrics` list (items compatible with
+	`MetricQC`), those metrics will be flattened into columns as
+	`<metric_name>_value` and `<metric_name>` (for qc string), and
+	`QC_notes` (if present) will be placed in a `notes` column.
 
-    for rec in qc_records:
-        row = {
-            "subject": f"sub-{rec.subject_id}",
-            "session": rec.session_id,
-            "task": str(rec.task_id),
-            "run": str(rec.run_id),
-            "pipeline": rec.pipeline,
-            "complete_timestamp": rec.complete_timestamp,
-        }
+	Parameters
+	----------
+	out_file : str or Path
+		Path where the CSV will be saved.
+	qc_records : list
+		List of `QCRecord` objects (or dicts) stored.
+	"""
+	out_file = Path(out_file)
+	out_file.parent.mkdir(parents=True, exist_ok=True)
 
-        for m in rec.metrics:
-            metric_name = m.name.lower().replace("-", "_")
-            if m.value is not None:
-                row[f"{metric_name}_value"] = m.value
-            if m.qc is not None:
-                row[f"{metric_name}"] = m.qc
+	rows = []
 
-        row.update(
-            {
-                "require_rerun": rec.require_rerun,
-                "rater": rec.rater,
-                "final_qc": rec.final_qc,
-                "notes": next(
-                    (m.notes for m in rec.metrics if m.name == "QC_notes"), None
-                ),
-            }
-        )
-        rows.append(row)
+	for rec in qc_records:
+		# support both model instances and plain dicts
+		if hasattr(rec, "dict"):
+			# pydantic model -> convert to dict for uniform access
+			rec_dict = rec.dict()
+		elif isinstance(rec, dict):
+			rec_dict = rec
+		else:
+			# Handle this better with exceptions
+			print("Unknown record format")
 
-    df = pd.DataFrame(rows)
-    if out_file.exists():
-        df_existing = pd.read_csv(out_file)
-        df = pd.concat([df_existing, df], ignore_index=True)
-        # Drop duplicates based on all columns or a subset
-        df = df.drop_duplicates(
-            subset=["subject", "session", "task", "run", "pipeline"], keep="last"
-        )
-    df = df.sort_values(by=["subject"]).reset_index(drop=True)
-    df.to_csv(out_file, index=False)
+		row = {
+			"qc_task": rec_dict.get("qc_task"),
+			"participant_id": rec_dict.get("participant_id"),
+			"session_id": rec_dict.get("session_id"),
+			"task_id": rec_dict.get("task_id"),
+			"run_id": rec_dict.get("run_id"),
+			"pipeline": rec_dict.get("pipeline"),
+			"timestamp": rec_dict.get("timestamp"),
+			"rater_id": rec_dict.get("rater_id"),
+			"rater_experience": rec_dict.get("rater_experience"),
+			"rater_fatigue": rec_dict.get("rater_fatigue"),
+			"final_qc": rec_dict.get("final_qc"),			
+		}
+		rows.append(row)
 
-    return out_file
+	df = pd.DataFrame(rows)
+	if out_file.exists():
+		df_existing = pd.read_csv(out_file, sep="\t")
+		df = pd.concat([df_existing, df], ignore_index=True)
+		# Drop duplicates based on core identity columns
+		subset_keys = ["participant_id", "session_id", "pipeline", "qc-task"]
+		existing_keys = [k for k in subset_keys if k in df.columns]
+		if existing_keys:
+			df = df.drop_duplicates(subset=existing_keys, keep="last")
+
+	sort_key = "participant_id" if "participant_id" in df.columns else df.columns[0]
+	df = df.sort_values(by=[sort_key]).reset_index(drop=True)
+	df.to_csv(out_file, index=False, sep='\t')
+
+	return out_file
