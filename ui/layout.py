@@ -6,35 +6,6 @@ from niivue_component import niivue_viewer
 from utils import parse_qc_config, load_mri_data, load_svg_data, save_qc_results_to_csv
 from models import MetricQC, QCRecord
 
-def niivue_viewer_from_path(filepath: str, height: int = 600, key: str | None = None) -> None:
-	"""Helper to read a local NIfTI file and call the niivue component (if available).
-
-	This mirrors the project's existing helper behavior: read the file bytes and
-	hand them to the component. If the niivue component is not installed/available,
-	a friendly warning is shown instead.
-	"""
-	if niivue_viewer is None:
-		st.warning(
-			"NiiVue component not available. Install the project's `niivue_component` or run the example in `ui/niivue_test.py` to preview behavior."
-		)
-		return
-
-	if not os.path.isfile(filepath):
-		st.error(f"NIfTI file not found: {filepath}")
-		return
-
-	with open(filepath, "rb") as f:
-		file_bytes = f.read()
-
-	if key is None:
-		key = f"niivue_viewer_{os.path.basename(filepath)}"
-
-	# call the underlying component
-	try:
-		niivue_viewer(nifti_data=file_bytes, filename=os.path.basename(filepath), height=height, key=key)
-	except Exception as e:
-		st.error(f"Failed to render niivue viewer: {e}")
-
 
 def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_dir) -> None:
 	"""Main Streamlit layout: top inputs, middle two viewers, bottom QC controls."""
@@ -88,23 +59,84 @@ def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_di
 		niivue_col, svg_col = st.columns([0.4, 0.6], gap="small")
 
 		with niivue_col:
-			st.header("3D MRI (Niivue)")
-			# Show mri
-			mri_data = load_mri_data(qc_config)
-			if "base_mri_image_bytes" in mri_data:
-				try:
-					niivue_viewer(
-						nifti_data=mri_data["base_mri_image_bytes"],
-						filename=str(qc_config.get("base_mri_image_path").name) if qc_config.get("base_mri_image_path") else "base_mri.nii",
-						height=600,
-						key="niivue_base_mri",
-					)
-				except Exception as e:
-					st.error(f"Failed to load base MRI in Niivue viewer: {e}")
-			else:
-				st.info("Base MRI image not found or could not be loaded.")
+			# Create a narrow controls column and a main viewer area inside the niivue column
+			cfg_col, view_col = st.columns([0.32, 0.68], gap="small")
 
-			# TODO : Optionally overlay another image
+			with cfg_col:
+				st.header("Niivue Controls")
+				# Persistent controls column (sidebar-like)
+				view_mode = st.selectbox(
+					"View Mode",
+					["multiplanar", "axial", "coronal", "sagittal", "3d"],
+					help="Select the viewing perspective"
+				)
+
+				height = st.slider("Viewer Height (px)", 400, 1000, 600, 50)
+				overlay_colormap = st.selectbox(
+					"Overlay Colormap",
+					["grey", "cool", "warm"],
+					help="Select the colormap for the overlay"
+				)
+
+				st.divider()
+				st.subheader("Display Settings")
+				show_crosshair = st.checkbox("Show Crosshair", value=False)
+				radiological = st.checkbox("Radiological Convention", value=False)
+				show_colorbar = st.checkbox("Show Colorbar", value=True)
+				interpolation = st.checkbox("Interpolation", value=True)
+
+				# Toggle to show/hide overlay image in the Niivue column
+				show_overlay = st.checkbox("Show overlay image", value=False)
+
+			with view_col:
+				st.header("3D MRI (Niivue)")
+				# Show mri
+				mri_data = load_mri_data(qc_config)
+				if "base_mri_image_bytes" in mri_data:
+					base_mri_image_bytes = mri_data["base_mri_image_bytes"]
+					base_mri_name = str(qc_config.get("base_mri_image_path").name) if qc_config.get("base_mri_image_path") else "base_mri.nii"
+
+					try:
+						# Prepare settings dictionary
+						settings = {
+							"crosshair": show_crosshair,
+							"radiological": radiological,
+							"colorbar": show_colorbar,
+							"interpolation": interpolation
+						}
+
+						# Prepare optional overlays only if user enabled and overlay bytes exist
+						overlays = []
+						if show_overlay and "overlay_mri_image_bytes" in mri_data:
+							overlays.append(
+								{
+									"data": mri_data["overlay_mri_image_bytes"],
+									"name": "overlay",
+									"colormap": overlay_colormap,
+									"opacity": 0.5,
+								}
+							)
+
+						# Build kwargs for niivue_viewer; include overlays only when present
+						viewer_kwargs = {
+							"nifti_data": base_mri_image_bytes,
+							"filename": base_mri_name,
+							"height": height,
+							"key": "niivue_base_mri",
+							"view_mode": view_mode,
+							"settings": settings,
+						}
+						if overlays:
+							viewer_kwargs["overlays"] = overlays
+						
+						viewer_kwargs["styled"] = False
+
+						niivue_viewer(**viewer_kwargs)
+
+					except Exception as e:
+						st.error(f"Failed to load base MRI in Niivue viewer: {e}")
+				else:
+					st.info("Base MRI image not found or could not be loaded.")
 
 		with svg_col:
 			st.header("SVG Montage")
