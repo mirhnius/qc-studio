@@ -71,7 +71,7 @@ def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_di
 					help="Select the viewing perspective"
 				)
 
-				height = st.slider("Viewer Height (px)", 400, 1000, 600, 50)
+				height = 600 #st.slider("Viewer Height (px)", 400, 1000, 600, 50)
 				overlay_colormap = st.selectbox(
 					"Overlay Colormap",
 					["grey", "cool", "warm"],
@@ -118,11 +118,14 @@ def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_di
 							)
 
 						# Build kwargs for niivue_viewer; include overlays only when present
+						overlay_state = f"{overlay_colormap}_{show_overlay}"
+						viewer_key = f"niivue_{view_mode}_{overlay_state}"
+
 						viewer_kwargs = {
 							"nifti_data": base_mri_image_bytes,
 							"filename": base_mri_name,
 							"height": height,
-							"key": "niivue_base_mri",
+							"key": viewer_key,
 							"view_mode": view_mode,
 							"settings": settings,
 						}
