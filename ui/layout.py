@@ -132,7 +132,7 @@ def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_di
 						if overlays:
 							viewer_kwargs["overlays"] = overlays
 						
-						viewer_kwargs["styled"] = False
+						viewer_kwargs["styled"] = True
 
 						niivue_viewer(**viewer_kwargs)
 
