@@ -149,7 +149,7 @@ def save_qc_results_to_csv(out_file, qc_records):
 
     if out_file.exists():
         try:
-            df_old = pd.read_csv(out_file)
+            df_old = pd.read_csv(out_file, sep="\t")
         except Exception:
             df_old = pd.DataFrame()
 
@@ -168,6 +168,7 @@ def save_qc_results_to_csv(out_file, qc_records):
 
     if "participant_id" in df.columns:
         df = df.sort_values(by=["participant_id"]).reset_index(drop=True)
-
-    df.to_csv(out_file, index=False)
+    df = df.reindex(columns=QCRecord.csv_columns())
+    
+    df.to_csv(out_file, index=False, sep="\t")
     return out_file
