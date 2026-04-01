@@ -42,6 +42,21 @@ class QCRecord(BaseModel):
     final_qc: Optional[str] = None
     notes: Annotated[Optional[str], Field(description="Additional comment")] = None
 
+    @classmethod
+    def csv_columns(cls) -> list[str]:
+        return list(cls.model_fields.keys())
+
+    @classmethod
+    def key_columns(cls) -> list[str]:
+        return [
+            "participant_id",
+            "session_id",
+            "qc_task",
+            "task_id",
+            "run_id",
+            "rater_id",
+        ]
+
 
 class QCTask(BaseModel):
     """Represents one QC entry in <pipeline>_qc.json (i.e. single QC task)."""
