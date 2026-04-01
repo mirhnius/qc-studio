@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import pandas as pd
-from models import QCConfig
+from models import QCConfig, QCRecord
 
 
 def parse_qc_config(qc_json, qc_task) -> dict:
@@ -142,24 +142,9 @@ def save_qc_results_to_csv(out_file, qc_records):
             rec_dict = rec
         else:
             continue
-
-        rows.append(
-            {
-                "qc_task": rec_dict.get("qc_task"),
-                "participant_id": rec_dict.get("participant_id"),
-                "session_id": rec_dict.get("session_id"),
-                "task_id": rec_dict.get("task_id"),
-                "run_id": rec_dict.get("run_id"),
-                "pipeline": rec_dict.get("pipeline"),
-                "timestamp": rec_dict.get("timestamp"),
-                "rater_id": rec_dict.get("rater_id"),
-                "rater_experience": rec_dict.get("rater_experience"),
-                "rater_fatigue": rec_dict.get("rater_fatigue"),
-                "final_qc": rec_dict.get("final_qc"),
-                "notes": rec_dict.get("notes"),
-            }
-        )
-
+            
+        rows.append({col: rec_dict.get(col) for col in QCRecord.csv_columns()})
+        
     df_new = pd.DataFrame(rows)
 
     if out_file.exists():
@@ -174,15 +159,9 @@ def save_qc_results_to_csv(out_file, qc_records):
             df = df_new
     else:
         df = df_new
-
-    key_cols = [
-        "participant_id",
-        "session_id",
-        "qc_task",
-        "task_id",
-        "run_id",
-        "rater_id",
-    ]
+        
+    key_cols = QCRecord.key_columns()
+    
     existing_keys = [c for c in key_cols if c in df.columns]
     if existing_keys:
         df = df.drop_duplicates(subset=existing_keys, keep="last")
