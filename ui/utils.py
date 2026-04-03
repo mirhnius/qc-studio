@@ -122,8 +122,11 @@ def save_qc_results_to_csv(out_file, qc_records):
 
 	for rec in qc_records:
 		# support both model instances and plain dicts
-		if hasattr(rec, "dict"):
-			# pydantic model -> convert to dict for uniform access
+		if hasattr(rec, "model_dump"):
+			# pydantic v2 model -> convert to dict for uniform access
+			rec_dict = rec.model_dump()
+		elif hasattr(rec, "dict"):
+			# pydantic v1 fallback
 			rec_dict = rec.dict()
 		elif isinstance(rec, dict):
 			rec_dict = rec
@@ -142,7 +145,8 @@ def save_qc_results_to_csv(out_file, qc_records):
 			"rater_id": rec_dict.get("rater_id"),
 			"rater_experience": rec_dict.get("rater_experience"),
 			"rater_fatigue": rec_dict.get("rater_fatigue"),
-			"final_qc": rec_dict.get("final_qc"),			
+			"final_qc": rec_dict.get("final_qc"),
+			"notes": rec_dict.get("notes"),
 		}
 		rows.append(row)
 
@@ -151,7 +155,7 @@ def save_qc_results_to_csv(out_file, qc_records):
 		df_existing = pd.read_csv(out_file, sep="\t")
 		df = pd.concat([df_existing, df], ignore_index=True)
 		# Drop duplicates based on core identity columns
-		subset_keys = ["participant_id", "session_id", "pipeline", "qc-task"]
+		subset_keys = ["participant_id", "session_id", "pipeline", "qc_task"]
 		existing_keys = [k for k in subset_keys if k in df.columns]
 		if existing_keys:
 			df = df.drop_duplicates(subset=existing_keys, keep="last")
