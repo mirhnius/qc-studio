@@ -63,14 +63,24 @@ qc_task = args.qc_task
 qc_json = args.qc_json
 out_dir = args.out_dir
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+qc_config_path = os.path.join(current_dir, qc_json)
 
 participants_df = pd.read_csv(participant_list, delimiter="\t")
+
+participant_ids = participants_df['participant_id'].tolist()
+total_participants = len(participant_ids)
 
 def init_session_state():
     defaults = {
         "current_page": 1,
         "batch_size": 1,
         "current_batch_qc": {},
+        "qc_records": [],
+        "rater_id": "",
+        "rater_experience": None,
+        "rater_fatigue": None,
+        "notes": "",
     }
     # Initialize defaults if not already set
     for key, value in defaults.items():
@@ -80,25 +90,29 @@ def init_session_state():
 # Initialize session state
 init_session_state()
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# print(f"Current directory: {current_dir}")
+current_page = st.session_state['current_page']
+if current_page < 1:
+    st.session_state['current_page'] = 1
+    current_page = 1
 
-qc_config_path = os.path.join(current_dir, qc_json)
-# print(f"qc path: {qc_config_path}")
+if current_page > total_participants:
+    participant_id = None
+else:
+    participant_id = participant_ids[current_page - 1]
 
-participant_id = "sub-ED01"
 session_id = "ses-01"
 
+drop_duplicates = False
 app(
     participant_id=participant_id,
     session_id=session_id,
     qc_pipeline=qc_pipeline,
     qc_task=qc_task,
     qc_config_path=qc_config_path,
-    out_dir=out_dir
+    out_dir=out_dir,
+    total_participants=total_participants,
+    drop_duplicates=drop_duplicates
 )
-
-    
 
 
 

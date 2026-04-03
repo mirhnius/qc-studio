@@ -94,7 +94,7 @@ def load_iqm_data(path_dict: dict) -> dict | None:
 
 # TODO : integrate with layout.py
 
-def save_qc_results_to_csv(out_file, qc_records):
+def save_qc_results_to_csv(out_file, qc_records, drop_duplicates=True):
 	"""
 	Save QC results from Streamlit session state to a CSV file.
 
@@ -154,11 +154,13 @@ def save_qc_results_to_csv(out_file, qc_records):
 	if out_file.exists():
 		df_existing = pd.read_csv(out_file, sep="\t")
 		df = pd.concat([df_existing, df], ignore_index=True)
+
 		# Drop duplicates based on core identity columns
-		subset_keys = ["participant_id", "session_id", "pipeline", "qc_task"]
-		existing_keys = [k for k in subset_keys if k in df.columns]
-		if existing_keys:
-			df = df.drop_duplicates(subset=existing_keys, keep="last")
+		if drop_duplicates:
+			subset_keys = ["participant_id", "session_id", "pipeline", "qc_task"]
+			existing_keys = [k for k in subset_keys if k in df.columns]
+			if existing_keys:
+				df = df.drop_duplicates(subset=existing_keys, keep="last")
 
 	sort_key = "participant_id" if "participant_id" in df.columns else df.columns[0]
 	df = df.sort_values(by=[sort_key]).reset_index(drop=True)
