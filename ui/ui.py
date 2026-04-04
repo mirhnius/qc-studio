@@ -111,7 +111,8 @@ app(
     qc_config_path=qc_config_path,
     out_dir=out_dir,
     total_participants=total_participants,
-    drop_duplicates=drop_duplicates
+    drop_duplicates=drop_duplicates,
+    participant_list=participant_list
 )
 
 
