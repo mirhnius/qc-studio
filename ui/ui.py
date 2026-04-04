@@ -102,7 +102,7 @@ else:
 
 session_id = "ses-01"
 
-drop_duplicates = False
+drop_duplicates = True
 app(
     participant_id=participant_id,
     session_id=session_id,

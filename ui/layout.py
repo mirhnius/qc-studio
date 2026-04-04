@@ -10,7 +10,17 @@ from models import MetricQC, QCRecord
 def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 	"""Display the landing page with rater info and CSV upload."""
 	st.title("Welcome to Nipoppy QC-Studio! 🚀")
-	st.subheader(f"QC Pipeline: {qc_pipeline} | QC Task: {qc_task}")
+
+	# Load participant list to get total unique participants
+	try:
+		participants_df = pd.read_csv(participant_list, delimiter="\t")
+		total_participants_in_ds = len(participants_df['participant_id'].unique())
+		participant_ids_in_ds = set(participants_df['participant_id'].unique())
+	except Exception as e:
+		st.error(f"Error loading participant list: {e}")
+		return
+
+	st.subheader(f"QC Pipeline: {qc_pipeline} | QC Task: {qc_task} | n_ds_participants: {total_participants_in_ds}")
 	
 	st.markdown("---")
 	
@@ -123,27 +133,36 @@ def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 				
 				st.success(f"✅ Loaded {len(df)} QC records from {uploaded_file.name}")
 				
+				# Get unique participants in the uploaded CSV
+				unique_participants_in_csv = df['participant_id'].nunique()
+				participant_ids_in_csv = set(df['participant_id'].unique())
+				
+				# Validate: Check if CSV has participants not in the participant list
+				invalid_participants = participant_ids_in_csv - participant_ids_in_ds
+				if invalid_participants:
+					st.error(f"❌ Error: The uploaded CSV contains {len(invalid_participants)} participant(s) not in the participant list: {', '.join(sorted(invalid_participants))}")
+					st.stop()
+				
+				# Check if CSV has more unique participants than dataset (should not happen if validation above passes)
+				if unique_participants_in_csv > total_participants_in_ds:
+					st.error(f"❌ Error: The uploaded CSV has {unique_participants_in_csv} unique participants, but the participant list only has {total_participants_in_ds}.")
+					st.stop()
+				
 				# Load participant list and show comparison
 				try:
-					participants_df = pd.read_csv(participant_list, delimiter="\t")
-					total_participants = len(participants_df)
-					
-					# Get unique participants in the uploaded CSV
-					unique_participants_in_csv = df['participant_id'].nunique()
-					
 					# Create comparison display
 					col_comp1, col_comp2 = st.columns(2)
 					with col_comp1:
 						st.metric("Participants Reviewed", unique_participants_in_csv)
 					with col_comp2:
-						st.metric("Total Participants", total_participants)
+						st.metric("Total Participants in ds", total_participants_in_ds)
 					
 					# Progress percentage
-					progress_pct = (unique_participants_in_csv / total_participants) * 100 if total_participants > 0 else 0
+					progress_pct = (unique_participants_in_csv / total_participants_in_ds) * 100 if total_participants_in_ds > 0 else 0
 					st.progress(min(progress_pct / 100, 1.0), text=f"{progress_pct:.1f}% complete")
 					
 				except Exception as e:
-					st.warning(f"Could not load participant list for comparison: {e}")
+					st.warning(f"Could not display comparison: {e}")
 				
 				# Extract rater information from the first record
 				if len(df) > 0:
