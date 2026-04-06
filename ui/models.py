@@ -1,6 +1,11 @@
 from datetime import datetime
-from typing import Annotated, List, Optional, Dict
+from typing import List, Optional, Dict
 from pathlib import Path
+
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 

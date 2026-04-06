@@ -150,7 +150,19 @@ def save_qc_results_to_csv(out_file, qc_records, drop_duplicates=True):
 		}
 		rows.append(row)
 
-	df = pd.DataFrame(rows)
+	# Define expected columns
+	expected_columns = [
+		"qc_task", "participant_id", "session_id", "task_id", "run_id",
+		"pipeline", "timestamp", "rater_id", "rater_experience",
+		"rater_fatigue", "final_qc", "notes"
+	]
+
+	# Create dataframe with proper columns even if empty
+	if rows:
+		df = pd.DataFrame(rows)
+	else:
+		df = pd.DataFrame(columns=expected_columns)
+
 	if out_file.exists():
 		df_existing = pd.read_csv(out_file, sep="\t")
 		df = pd.concat([df_existing, df], ignore_index=True)
@@ -162,8 +174,11 @@ def save_qc_results_to_csv(out_file, qc_records, drop_duplicates=True):
 			if existing_keys:
 				df = df.drop_duplicates(subset=existing_keys, keep="last")
 
-	sort_key = "participant_id" if "participant_id" in df.columns else df.columns[0]
-	df = df.sort_values(by=[sort_key]).reset_index(drop=True)
+	# Only sort if dataframe is not empty
+	if not df.empty:
+		sort_key = "participant_id" if "participant_id" in df.columns else df.columns[0]
+		df = df.sort_values(by=[sort_key]).reset_index(drop=True)
+	
 	df.to_csv(out_file, index=False, sep='\t')
 
 	return out_file

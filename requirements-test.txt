@@ -1,0 +1,24 @@
+# Test dependencies for qc-studio
+# Install with: pip install -r requirements-test.txt
+# Note: Python 3.8+ recommended (some dependencies require it)
+
+# Base requirements
+-r requirements.txt
+
+# Testing framework
+pytest>=3.0
+
+# For compatibility with Python 3.7
+typing-extensions>=3.7
+
+# For mocking and testing
+pytest-mock>=3.0
+
+# For coverage reports
+pytest-cov>=2.10
+
+# Optional: For parallel test execution
+# pytest-xdist>=3.0
+
+# Optional: For test report generation
+# pytest-html>=3.1.0

@@ -54,23 +54,6 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
-args = parse_args()
-
-participant_list = args.participant_list
-session_list = args.session_list
-qc_pipeline = args.qc_pipeline
-qc_task = args.qc_task
-qc_json = args.qc_json
-out_dir = args.out_dir
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-qc_config_path = os.path.join(current_dir, qc_json)
-
-participants_df = pd.read_csv(participant_list, delimiter="\t")
-
-participant_ids = participants_df['participant_id'].tolist()
-total_participants = len(participant_ids)
-
 def init_session_state():
     defaults = {
         "current_page": 1,
@@ -87,33 +70,57 @@ def init_session_state():
         if key not in st.session_state:
             st.session_state[key] = value
 
-# Initialize session state
-init_session_state()
 
-current_page = st.session_state['current_page']
-if current_page < 1:
-    st.session_state['current_page'] = 1
-    current_page = 1
+def main():
+    """Main entry point for the Streamlit app."""
+    args = parse_args()
 
-if current_page > total_participants:
-    participant_id = None
-else:
-    participant_id = participant_ids[current_page - 1]
+    participant_list = args.participant_list
+    session_list = args.session_list
+    qc_pipeline = args.qc_pipeline
+    qc_task = args.qc_task
+    qc_json = args.qc_json
+    out_dir = args.out_dir
 
-session_id = "ses-01"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    qc_config_path = os.path.join(current_dir, qc_json)
 
-drop_duplicates = True
-app(
-    participant_id=participant_id,
-    session_id=session_id,
-    qc_pipeline=qc_pipeline,
-    qc_task=qc_task,
-    qc_config_path=qc_config_path,
-    out_dir=out_dir,
-    total_participants=total_participants,
-    drop_duplicates=drop_duplicates,
-    participant_list=participant_list
-)
+    participants_df = pd.read_csv(participant_list, delimiter="\t")
+
+    participant_ids = participants_df['participant_id'].tolist()
+    total_participants = len(participant_ids)
+
+    # Initialize session state
+    init_session_state()
+
+    current_page = st.session_state['current_page']
+    if current_page < 1:
+        st.session_state['current_page'] = 1
+        current_page = 1
+
+    if current_page > total_participants:
+        participant_id = None
+    else:
+        participant_id = participant_ids[current_page - 1]
+
+    session_id = "ses-01"
+
+    drop_duplicates = True
+    app(
+        participant_id=participant_id,
+        session_id=session_id,
+        qc_pipeline=qc_pipeline,
+        qc_task=qc_task,
+        qc_config_path=qc_config_path,
+        out_dir=out_dir,
+        total_participants=total_participants,
+        drop_duplicates=drop_duplicates,
+        participant_list=participant_list
+    )
+
+
+if __name__ == "__main__":
+    main()
 
 
 
