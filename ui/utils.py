@@ -86,8 +86,6 @@ def load_iqm_data(dataset_dir, path_dict: dict) -> dict | None:
 		except Exception:
 			return None
 	return None
-
-
 def save_qc_results_to_csv(out_file, qc_records, drop_duplicates=True):
 	"""
 	Save QC results from Streamlit session state to a CSV file.
