@@ -47,76 +47,45 @@ def parse_qc_config(qc_json, qc_task) -> dict:
     }
 
 
-def load_mri_data(path_dict: dict) -> dict:
-    """Load base and overlay MRI image files as bytes."""
-    base_mri_path = path_dict.get("base_mri_image_path")
-    overlay_mri_path = path_dict.get("overlay_mri_image_path")
+def load_mri_data(dataset_dir, path_dict: dict) -> dict:
+	"""Load base and overlay MRI image files as bytes."""
 
-    file_bytes_dict = {}
+	base_mri_path = Path(dataset_dir).joinpath(path_dict.get("base_mri_image_path"))
+	overlay_mri_path = Path(dataset_dir).joinpath(path_dict.get("overlay_mri_image_path"))
+	file_bytes_dict = {}
 
-    if base_mri_path and Path(base_mri_path).is_file():
-        file_bytes_dict["base_mri_image_bytes"] = Path(base_mri_path).read_bytes()
+	if base_mri_path and Path(base_mri_path).is_file():
+		file_bytes_dict["base_mri_image_bytes"] = Path(base_mri_path).read_bytes()
+		file_bytes_dict["base_mri_image_path"] = base_mri_path
 
-    if overlay_mri_path and Path(overlay_mri_path).is_file():
-        file_bytes_dict["overlay_mri_image_bytes"] = Path(overlay_mri_path).read_bytes()
+	if overlay_mri_path and Path(overlay_mri_path).is_file():
+		file_bytes_dict["overlay_mri_image_bytes"] = Path(overlay_mri_path).read_bytes()
 
-    return file_bytes_dict
-
-
-def load_svg_data(path_dict: dict) -> list[str]:
-    """
-    Load SVG montage file(s) content as strings.
-    Returns a list (possibly empty).
-    """
-    svg_paths = path_dict.get("svg_montage_path") or []
-    out = []
-
-    for p in svg_paths:
-        p = Path(p)
-        if p.is_file():
-            try:
-                out.append(p.read_text())
-            except Exception:
-                pass
-
-    return out
+	return file_bytes_dict
 
 
-def load_iqm_data(path_dict: dict):
-    """
-    Load IQM files.
-    - TSV files are returned as pandas DataFrames
-    - JSON files are returned as dicts
+def load_svg_data(dataset_dir, path_dict: dict) -> str | None:
+	"""Load SVG montage file content as string."""
+	svg_montage_path = Path(dataset_dir).joinpath(path_dict.get("svg_montage_path"))
+	if svg_montage_path and svg_montage_path.is_file():
+		try:
+			with open(svg_montage_path, "r") as f:
+				return f.read()
+		except Exception:
+			return None
+	return None
 
-    Returns a list of loaded objects (possibly empty).
-    """
-    iqm_paths = path_dict.get("iqm_path") or []
-    out = []
 
-    for p in iqm_paths:
-        p = Path(p)
-        if not p.is_file():
-            continue
-
-        suffix = p.suffix.lower()
-
-        if suffix == ".tsv":
-            try:
-                out.append(pd.read_csv(p, sep="\t"))
-            except Exception:
-                pass
-        elif suffix == ".json":
-            try:
-                out.append(json.loads(p.read_text()))
-            except Exception:
-                pass
-        else:
-            try:
-                out.append(p.read_text())
-            except Exception:
-                pass
-
-    return out
+def load_iqm_data(dataset_dir, path_dict: dict) -> dict | None:
+	"""Load IQM JSON file content as dict."""
+	iqm_path = Path(dataset_dir).joinpath(path_dict.get("iqm_path"))
+	if iqm_path and iqm_path.is_file():
+		try:
+			with open(iqm_path, "r") as f:
+				return json.load(f)
+		except Exception:
+			return None
+	return None
 
 
 def save_qc_results_to_csv(out_file, qc_records, drop_duplicates=True):

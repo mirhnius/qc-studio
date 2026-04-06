@@ -151,7 +151,7 @@ class NiivueViewerManager:
         return viewer_kwargs
     
     @staticmethod
-    def render_viewer(qc_config, config: NiivueViewerConfig):
+    def render_viewer(dataset_dir, qc_config, config: NiivueViewerConfig):
         """Render Niivue viewer in the main viewing area.
         
         Args:
@@ -162,7 +162,7 @@ class NiivueViewerManager:
         
         try:
             # Load MRI data
-            mri_data = load_mri_data(qc_config)
+            mri_data = load_mri_data(dataset_dir, qc_config)
             
             if "base_mri_image_bytes" not in mri_data:
                 st.info(ERROR_MESSAGES['base_mri_not_found'])

@@ -14,6 +14,12 @@ def parse_args(args=None):
     parser = ArgumentParser("QC-Studio")
 
     parser.add_argument(
+        "--dataset_dir",
+        dest="dataset_dir",
+        help=("Path to dataset dir"),
+        required=True,
+    )
+    parser.add_argument(
         "--participant_list",
         dest="participant_list",
         help=("List of participants to QC"),
@@ -74,7 +80,8 @@ def init_session_state():
 def main():
     """Main entry point for the Streamlit app."""
     args = parse_args()
-
+    
+    dataset_dir = args.dataset_dir
     participant_list = args.participant_list
     session_list = args.session_list
     qc_pipeline = args.qc_pipeline
@@ -106,7 +113,8 @@ def main():
     session_id = "ses-01"
 
     drop_duplicates = True
-    app(
+    app( 
+        dataset_dir=dataset_dir,       
         participant_id=participant_id,
         session_id=session_id,
         qc_pipeline=qc_pipeline,

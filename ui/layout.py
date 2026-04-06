@@ -21,7 +21,7 @@ from qc_viewer import display_qc_viewers
 from pagination import display_qc_rating_and_pagination
 
 
-def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_dir, total_participants, drop_duplicates, participant_list) -> None:
+def app(dataset_dir, participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_dir, total_participants, drop_duplicates, participant_list) -> None:
 	"""Main Streamlit layout: landing page, QC viewers, and congratulations."""
 	st.set_page_config(layout="wide")
 
@@ -66,6 +66,7 @@ def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_di
 	middle = st.container()
 	with middle:
 		display_qc_viewers(
+			dataset_dir=dataset_dir,			
 			qc_config=qc_config,
 			participant_id=participant_id,
 			session_id=session_id,
@@ -75,7 +76,7 @@ def app(participant_id, session_id, qc_pipeline, qc_task, qc_config_path, out_di
 		)
 
 	# Bottom: QC Rating and Pagination
-	display_qc_rating_and_pagination(
+	display_qc_rating_and_pagination(		
 		participant_id=participant_id,
 		session_id=session_id,
 		qc_pipeline=qc_pipeline,

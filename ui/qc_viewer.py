@@ -9,6 +9,7 @@ from datetime import datetime
 
 
 def display_qc_viewers(
+	dataset_dir,
 	qc_config,
 	participant_id: str = None,
 	session_id: str = None,
@@ -44,38 +45,40 @@ def display_qc_viewers(
 	
 	# All three panels selected: 3-column on top, IQM and QC rating in 2-columns below
 	if show_niivue and show_svg and show_iqm:
-		_display_niivue_with_secondary_panel(selected_panels, qc_config)
+		_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
 		st.divider()
 		_display_iqm_and_rating_side_by_side(
+			dataset_dir=dataset_dir,
 			participant_id=participant_id,
 			session_id=session_id,
 			qc_pipeline=qc_pipeline,
 			qc_task=qc_task,
 			total_participants=total_participants
-		)
+	)
 	# 3-column layout: Niivue + SVG (no IQM)
 	elif show_niivue and show_svg:
-		_display_niivue_with_secondary_panel(selected_panels, qc_config)
+		_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
 	# 3-column layout: Niivue + IQM (no SVG)
 	elif show_niivue and show_iqm:
-		_display_niivue_with_secondary_panel(selected_panels, qc_config)
+		_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
 	# Full-width Niivue only
 	elif show_niivue:
 		_display_niivue_full_width(qc_config)
 	# Full-width SVG only
 	elif show_svg:
-		_display_svg_panel(qc_config)
+		_display_svg_panel(dataset_dir, qc_config)
 	# Full-width IQM only
 	elif show_iqm:
 		_display_iqm_panel()
 
 
-def _display_niivue_with_secondary_panel(selected_panels: dict, qc_config) -> None:
+def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_config) -> None:
 	"""Display 3-column layout: controls | Niivue viewer | Secondary panel (SVG or IQM).
 	
 	Used when Niivue is selected with either SVG or IQM panel.
 	
 	Args:
+		dataset_dir: Root dataset directory
 		selected_panels: Dictionary of selected panels
 		qc_config: QC configuration object
 	"""
@@ -87,12 +90,12 @@ def _display_niivue_with_secondary_panel(selected_panels: dict, qc_config) -> No
 	
 	# Middle column: Niivue viewer (header rendered by render_viewer)
 	with viewer_col:
-		NiivueViewerManager.render_viewer(qc_config, niivue_config)
+		NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config)
 	
 	# Right column: SVG or IQM panel
 	with panel_col:
 		if selected_panels.get('svg', False):
-			_display_svg_panel(qc_config)
+			_display_svg_panel(dataset_dir, qc_config)
 		else:
 			_display_iqm_panel()
 
@@ -109,17 +112,17 @@ def _display_niivue_full_width(qc_config) -> None:
 		niivue_config = NiivueViewerManager.render_controls_panel()
 	
 	with right_col:
-		NiivueViewerManager.render_viewer(qc_config, niivue_config)
+		NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config)
 
 
-def _display_svg_panel(qc_config) -> None:
+def _display_svg_panel(dataset_dir, qc_config) -> None:
 	"""Display SVG montage panel.
 	
 	Args:
 		qc_config: QC configuration object
 	"""
 	st.header(MESSAGES['svg_header'])
-	svg_data = load_svg_data(qc_config)
+	svg_data = load_svg_data(dataset_dir, qc_config)
 	if svg_data:
 		st.components.v1.html(svg_data, height=SVG_HEIGHT, scrolling=True)
 	else:
@@ -127,6 +130,7 @@ def _display_svg_panel(qc_config) -> None:
 
 
 def _display_iqm_and_rating_side_by_side(
+	dataset_dir,
 	participant_id: str = None,
 	session_id: str = None,
 	qc_pipeline: str = None,
@@ -138,6 +142,7 @@ def _display_iqm_and_rating_side_by_side(
 	Left column shows IQM metrics. Right column shows QC rating form.
 	
 	Args:
+		dataset_dir: Root dataset directory
 		participant_id: Current participant ID
 		session_id: Current session ID
 		qc_pipeline: QC pipeline name
