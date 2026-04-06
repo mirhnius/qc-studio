@@ -1,50 +1,54 @@
 import json
 from pathlib import Path
 import pandas as pd
-from models import QCConfig, QCRecord
-
+from models import QCConfig
 
 def parse_qc_config(qc_json, qc_task) -> dict:
-    """
-    Parse a QC JSON file using the QCConfig Pydantic model.
+	"""Parse a QC JSON file using the QCConfig Pydantic model.
 
-    Returns a dict with keys:
-      - 'base_mri_image_path': Path | None
-      - 'overlay_mri_image_path': Path | None
-      - 'svg_montage_path': list[Path] | None
-      - 'iqm_path': list[Path] | None
+	Returns a dict with keys:
+	  - 'base_mri_image_path': Path | None
+	  - 'overlay_mri_image_path': Path | None
+	  - 'svg_montage_path': Path | None
+	  - 'iqm_path': Path | None
 
-    If the file is missing, invalid, or the requested qc_task is not present,
-    all values will be None.
-    """
-    qc_json_path = Path(qc_json) if qc_json else None
+	If the file is missing, invalid, or the requested qc_task is not present,
+	all values will be None. Uses `QCConfig` from `models` for validation.
+	"""
 
-    try:
-        raw_text = qc_json_path.read_text()
-        qcconf = QCConfig.model_validate_json(raw_text)
-    except Exception:
-        return {
-            "base_mri_image_path": None,
-            "overlay_mri_image_path": None,
-            "svg_montage_path": None,
-            "iqm_path": None,
-        }
+	qc_json_path = Path(qc_json) if qc_json else None
+	print(f"Parsing QC config: {qc_json_path}, task: {qc_task}")
 
-    qctask = qcconf.root.get(qc_task)
-    if not qctask:
-        return {
-            "base_mri_image_path": None,
-            "overlay_mri_image_path": None,
-            "svg_montage_path": None,
-            "iqm_path": None,
-        }
+	try:
+		# Pydantic v2 deprecates `parse_file`; read file and validate JSON string.
+		raw_text = qc_json_path.read_text()
+		qcconf = QCConfig.model_validate_json(raw_text)
+	except Exception:
+		# validation/parsing failed
+		return {
+			"base_mri_image_path": None,
+			"overlay_mri_image_path": None,
+			"svg_montage_path": None,
+			"iqm_path": None,
+		}
 
-    return {
-        "base_mri_image_path": qctask.base_mri_image_path,
-        "overlay_mri_image_path": qctask.overlay_mri_image_path,
-        "svg_montage_path": qctask.svg_montage_path,
-        "iqm_path": qctask.iqm_path,
-    }
+	# qcconf.root is a dict: qc_task -> QCTask (RootModel)
+	qctask = qcconf.root.get(qc_task)
+	if not qctask:
+		return {
+			"base_mri_image_path": None,
+			"overlay_mri_image_path": None,
+			"svg_montage_path": None,
+			"iqm_path": None,
+		}
+
+	# qctask is a QCTask model; its fields are Path or None already
+	return {
+		"base_mri_image_path": qctask.base_mri_image_path,
+		"overlay_mri_image_path": qctask.overlay_mri_image_path,
+		"svg_montage_path": qctask.svg_montage_path,
+		"iqm_path": qctask.iqm_path,
+	}
 
 
 def load_mri_data(dataset_dir, path_dict: dict) -> dict:
@@ -86,6 +90,9 @@ def load_iqm_data(dataset_dir, path_dict: dict) -> dict | None:
 		except Exception:
 			return None
 	return None
+
+
+# TODO : integrate with layout.py
 def save_qc_results_to_csv(out_file, qc_records, drop_duplicates=True):
 	"""
 	Save QC results from Streamlit session state to a CSV file.

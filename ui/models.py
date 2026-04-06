@@ -1,9 +1,13 @@
-from datetime import date
-from typing import Annotated, List, Optional, Dict, Literal
+from datetime import datetime
+from typing import List, Optional, Dict
 from pathlib import Path
 
-from pydantic import BaseModel, Field, RootModel
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
 
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Future plans:
 # To be used if we want to provide configurable QC scoring options
@@ -33,51 +37,18 @@ class QCRecord(BaseModel):
         Optional[str], Field(description="Completion date")
     ] = None
     rater_id: Annotated[str, Field(description="Name of the rater")]
-    rater_experience: Annotated[
-        Optional[str], Field(description="Rater experience level")
-    ] = None
-    rater_fatigue: Annotated[
-        Optional[str], Field(description="Rater fatigue level")
-    ] = None
+    rater_experience: Annotated[Optional[str], Field(description="Rater experience level")] = None
+    rater_fatigue: Annotated[Optional[str], Field(description="Rater fatigue level")] = None
     final_qc: Optional[str] = None
     notes: Annotated[Optional[str], Field(description="Additional comment")] = None
-
-    @classmethod
-    def csv_columns(cls) -> list[str]:
-        return list(cls.model_fields.keys())
-
-    @classmethod
-    def key_columns(cls) -> list[str]:
-        return [
-            "participant_id",
-            "session_id",
-            "qc_task",
-            "task_id",
-            "run_id",
-            "rater_id",
-        ]
 
 
 class QCTask(BaseModel):
     """Represents one QC entry in <pipeline>_qc.json (i.e. single QC task)."""
-
-    base_mri_image_path: Annotated[
-        Optional[Path], Field(description="Path to base MRI image")
-    ] = None
-
-    overlay_mri_image_path: Annotated[
-        Optional[Path], Field(description="Path to overlay MRI image (mask etc.)")
-    ] = None
-
-    # Updated to list to match the repo plan (can show multiple montages)
-    svg_montage_path: Annotated[
-        Optional[List[Path]], Field(description="Path(s) to SVG montage(s) for visual QC")
-    ] = None
-
-    # Updated to list to match the repo plan (can load multiple IQM files)
-    iqm_path: Annotated[
-        Optional[List[Path]], Field(description="Path(s) to IQM TSV/JSON or other QC files")
-    ] = None
+    base_mri_image_path: Annotated[Optional[Path], Field(description="Path to base MRI image")] = None
+    overlay_mri_image_path: Annotated[Optional[Path], Field(description="Path to overlay MRI image (mask etc.)")] = None
+    svg_montage_path: Annotated[Optional[Path], Field(description="Path to an SVG montage for visual QC")] = None
+    iqm_path: Annotated[Optional[Path], Field(description="Path to an IQM or other QC SVG/file")] = None
 
 
 class QCConfig(RootModel[Dict[str, QCTask]]):
@@ -90,17 +61,15 @@ class QCConfig(RootModel[Dict[str, QCTask]]):
         "anat_wf_qc": {
             "base_mri_image_path": "...",
             "overlay_mri_image_path": "...",
-            "svg_montage_path": ["...svg", "...svg"],
-            "iqm_path": ["...tsv"]
+            "svg_montage_path": "...",
+            "iqm_path": "..."
         }
     }
     """
+    # RootModel holds the mapping as `.root` (dict[str, QCTask])
     pass
 
 
-# -----------------------------
-# qc_status.tsv model
-# -----------------------------
 
 QCDecision = Literal["pass", "fail", "uncertain"]
 
