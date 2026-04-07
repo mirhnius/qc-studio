@@ -4,7 +4,7 @@ import streamlit as st
 from constants import MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES
 from session_manager import SessionManager
 from utils import save_qc_results_to_csv
-
+from constants import QC_RATINGS
 
 def show_congratulations_page(qc_task: str, out_dir: str, total_participants: int, drop_duplicates: bool) -> None:
 	"""Display the final congratulations page after QC is complete.
@@ -45,7 +45,7 @@ def show_congratulations_page(qc_task: str, out_dir: str, total_participants: in
 			st.rerun()
 	with col3:
 		if st.button(MESSAGES['start_over_button'], use_container_width=True):
-			SessionManager.set_current_page(1)
+			SessionManager.set_landing_page_complete(False)
 			st.rerun()
 
 
@@ -70,8 +70,11 @@ def _display_session_summary(rater_id: str, qc_task: str, record_list: list) -> 
 		if record_list:
 			final_qc_counts = {}
 			for record in record_list:
-				qc_value = record.final_qc
-				final_qc_counts[qc_value] = final_qc_counts.get(qc_value, 0) + 1
+				qc_value = record.final_qc				
+				if qc_value not in QC_RATINGS:
+					final_qc_counts["Unrated"] = final_qc_counts.get(qc_value, 0) + 1
+				else:
+					final_qc_counts[qc_value] = final_qc_counts.get(qc_value, 0) + 1
 			
 			for qc_status, count in sorted(final_qc_counts.items()):
 				st.write(f"**{qc_status}:** {count}")
