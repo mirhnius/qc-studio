@@ -116,31 +116,55 @@ def _display_niivue_full_width(qc_config) -> None:
 
 
 def _display_svg_panel(dataset_dir, qc_config) -> None:
-	"""Display SVG montage panel with tabs for multiple SVGs.
+	"""Display SVG/PNG/JPEG montage panel with tabs for multiple images.
 	
-	If multiple SVG files are available, renders them as separate tabs.
-	If only one SVG file is available, displays it directly.
+	If multiple image files are available, renders them as separate tabs.
+	If only one image file is available, displays it directly.
+	
+	Supports:
+	- SVG: Rendered as HTML
+	- PNG/JPEG: Displayed as images using st.image()
 	
 	Args:
 		dataset_dir: Root dataset directory
 		qc_config: QC configuration object
 	"""
 	st.header(MESSAGES['svg_header'])
-	svg_data = load_svg_data(dataset_dir, qc_config)
+	image_data = load_svg_data(dataset_dir, qc_config)
 	
-	if svg_data:
-		# If multiple SVGs, create tabs
-		if len(svg_data) > 1:
-			tabs = st.tabs(list(svg_data.keys()))
-			for tab, (filename, content) in zip(tabs, svg_data.items()):
+	if image_data:
+		# If multiple images, create tabs
+		if len(image_data) > 1:
+			tabs = st.tabs(list(image_data.keys()))
+			for tab, (filename, data) in zip(tabs, image_data.items()):
 				with tab:
-					st.components.v1.html(content, height=SVG_HEIGHT, scrolling=True)
+					_render_image(data, filename)
 		else:
-			# Single SVG - display directly
-			svg_content = list(svg_data.values())[0]
-			st.components.v1.html(svg_content, height=SVG_HEIGHT, scrolling=True)
+			# Single image - display directly
+			filename, data = list(image_data.items())[0]
+			_render_image(data, filename)
 	else:
 		st.info(ERROR_MESSAGES['svg_not_found'])
+
+
+def _render_image(image_data: dict, filename: str) -> None:
+	"""Render a single image (SVG, PNG, or JPEG) in Streamlit.
+	
+	Args:
+		image_data: Dict with keys 'type' and 'content'
+		filename: Name of the image file for display
+	"""
+	image_type = image_data.get("type")
+	content = image_data.get("content")
+	
+	if image_type == "svg":
+		# Render SVG as HTML
+		st.components.v1.html(content, height=SVG_HEIGHT, scrolling=True)
+	elif image_type in ["png", "jpeg"]:
+		# Display PNG/JPEG as image
+		st.image(content, use_container_width=True, caption=filename)
+	else:
+		st.warning(f"Unsupported image type: {image_type}")
 
 
 def _display_iqm_and_rating_side_by_side(

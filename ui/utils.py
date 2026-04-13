@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 from models import QCConfig
 from constants import SUBSTITUTIONS_DICT
+from PIL import Image
 
 def parse_qc_config(qc_json, qc_task, substitution_values) -> dict:
 	"""Parse a QC JSON file using the QCConfig Pydantic model.
@@ -90,20 +91,20 @@ def load_svg_data(dataset_dir, path_dict: dict) -> dict | None:
 			- String representation of list (from JSON)
 	
 	Returns:
-		Dict with format: {filename: svg_content_string}
-		Returns None if no valid SVG files are found.
+		Dict with format: {filename: {"type": "svg"|"png"|"jpeg", "content": svg_string|PIL_Image}}
+		Returns None if no valid image files are found.
 	
 	Example:
 		{
-			"montage_1.svg": "<svg>...</svg>",
-			"montage_2.svg": "<svg>...</svg>"
+			"montage_1.svg": {"type": "svg", "content": "<svg>...</svg>"},
+			"montage_2.png": {"type": "png", "content": PIL.Image},
 		}
 	"""
 	svg_paths = path_dict.get("svg_montage_path")
 	if not svg_paths:
 		return None
 	
-	print(f"Original SVG paths from config: {svg_paths} (type: {type(svg_paths)})")
+	print(f"Original image paths from config: {svg_paths} (type: {type(svg_paths)})")
 
 	if isinstance(svg_paths, Path):
 		svg_paths = [svg_paths]
@@ -111,23 +112,46 @@ def load_svg_data(dataset_dir, path_dict: dict) -> dict | None:
 		# Fallback for other types
 		svg_paths = [svg_paths]
 
-	svg_data = {}
+	image_data = {}
 	
-	print(f"Loading SVG data from paths: {svg_paths}")
-	for svg_path in svg_paths:
-		full_path = Path(dataset_dir).joinpath(str(svg_path))
-		print(f"Attempting to load SVG from: {full_path}")
+	print(f"Loading image data from paths: {svg_paths}")
+	for i, img_path in enumerate(svg_paths):
+		full_path = Path(dataset_dir).joinpath(str(img_path))
+		print(f"Attempting to load image from: {full_path}, exists: {full_path.is_file()}")
+		
 		if full_path and full_path.is_file():
-			try:
-				with open(full_path, "r") as f:
-					# Use filename as key for tab labels
-					filename = full_path.name
-					svg_data[filename] = f.read()
-			except Exception:
+			file_ext = full_path.suffix.lower()
+			
+			# Check if file is a supported image type
+			if file_ext not in ['.svg', '.png', '.jpg', '.jpeg']:
+				print(f"Skipping unsupported file: {full_path}")
 				continue
+
+			try:
+				filename = f"{full_path.stem}_{i}{file_ext}"
+				
+				if file_ext == '.svg':
+					with open(full_path, "r") as f:
+						image_data[filename] = {
+							"type": "svg",
+							"content": f.read()
+						}
+				elif file_ext in ['.png', '.jpg', '.jpeg']:
+					img = Image.open(full_path)
+					image_type = "png" if file_ext == '.png' else "jpeg"
+					image_data[filename] = {
+						"type": image_type,
+						"content": img
+					}
+				
+				print(f"Successfully loaded {file_ext} image: {filename}")
+				
+			except Exception as e:
+				print(f"Failed to read image file: {full_path} - {e}")
+				continue	
 	
-	print(f"Loaded SVG data for paths: {list(svg_data.keys())}")
-	return svg_data if svg_data else None
+	print(f"Loaded image data for files: {list(image_data.keys())}")
+	return image_data if image_data else None
 
 
 def load_iqm_data(dataset_dir, path_dict: dict) -> dict | None:

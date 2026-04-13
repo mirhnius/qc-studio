@@ -134,9 +134,12 @@ class TestLoadSvgData:
         
         assert result is not None
         assert isinstance(result, dict)
-        assert "montage.svg" in result
-        assert "<svg" in result["montage.svg"]
-        assert sample_svg_content in result["montage.svg"]
+        assert len(result) == 1
+        # Check structure of returned data
+        filename = list(result.keys())[0]
+        assert result[filename]["type"] == "svg"
+        assert "<svg" in result[filename]["content"]
+        assert sample_svg_content in result[filename]["content"]
 
     def test_load_multiple_svg_files(self, temp_dir, sample_svg_content):
         """Test loading multiple SVG files."""
@@ -153,10 +156,58 @@ class TestLoadSvgData:
         assert result is not None
         assert isinstance(result, dict)
         assert len(result) == 2
-        assert "montage1.svg" in result
-        assert "montage2.svg" in result
-        assert sample_svg_content in result["montage1.svg"]
-        assert "second montage" in result["montage2.svg"]
+        
+        # Check that both SVG files are loaded with correct type
+        for filename, data in result.items():
+            assert data["type"] == "svg"
+            assert "<svg" in data["content"]
+
+    def test_load_svg_and_png_mixed(self, temp_dir, sample_svg_content):
+        """Test loading mixed SVG and PNG files."""
+        from PIL import Image
+        
+        svg_file = temp_dir / "montage.svg"
+        svg_file.write_text(sample_svg_content)
+        
+        # Create a simple PNG file
+        png_file = temp_dir / "image.png"
+        img = Image.new('RGB', (100, 100), color='red')
+        img.save(png_file)
+        
+        path_dict = {"svg_montage_path": [svg_file, png_file]}
+        
+        result = load_svg_data(temp_dir, path_dict)
+        
+        assert result is not None
+        assert isinstance(result, dict)
+        assert len(result) == 2
+        
+        # Verify we have one SVG and one PNG
+        types = [data["type"] for data in result.values()]
+        assert "svg" in types
+        assert "png" in types
+
+    def test_load_jpeg_file(self, temp_dir):
+        """Test loading JPEG file."""
+        from PIL import Image
+        
+        # Create a simple JPEG file
+        jpeg_file = temp_dir / "image.jpg"
+        img = Image.new('RGB', (100, 100), color='blue')
+        img.save(jpeg_file, 'JPEG')
+        
+        path_dict = {"svg_montage_path": jpeg_file}
+        
+        result = load_svg_data(temp_dir, path_dict)
+        
+        assert result is not None
+        assert isinstance(result, dict)
+        assert len(result) == 1
+        
+        # Check JPEG file is loaded correctly
+        data = list(result.values())[0]
+        assert data["type"] == "jpeg"
+        assert isinstance(data["content"], Image.Image)
 
     def test_load_svg_partial_failure(self, temp_dir, sample_svg_content):
         """Test loading multiple SVGs when one file doesn't exist."""
@@ -174,8 +225,20 @@ class TestLoadSvgData:
         assert result is not None
         assert isinstance(result, dict)
         assert len(result) == 1
-        assert "montage1.svg" in result
-        assert sample_svg_content in result["montage1.svg"]
+        assert result[list(result.keys())[0]]["type"] == "svg"
+
+    def test_load_unsupported_file_type(self, temp_dir):
+        """Test loading unsupported file types (should be skipped)."""
+        # Create an unsupported file type
+        txt_file = temp_dir / "file.txt"
+        txt_file.write_text("This is not an image")
+        
+        path_dict = {"svg_montage_path": txt_file}
+        
+        result = load_svg_data(temp_dir, path_dict)
+        
+        # Unsupported files should be skipped, returning None
+        assert result is None
 
     def test_load_svg_nonexistent_file(self, temp_dir):
         """Test loading non-existent SVG file."""
