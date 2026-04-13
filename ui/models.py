@@ -45,9 +45,16 @@ class QCRecord(BaseModel):
 
 class QCTask(BaseModel):
     """Represents one QC entry in <pipeline>_qc.json (i.e. single QC task)."""
+
+    # Single file paths for mri and overlay images
     base_mri_image_path: Annotated[Optional[Path], Field(description="Path to base MRI image")] = None
     overlay_mri_image_path: Annotated[Optional[Path], Field(description="Path to overlay MRI image (mask etc.)")] = None
-    svg_montage_path: Annotated[Optional[Path], Field(description="Path to an SVG montage for visual QC")] = None
+
+    # List of paths for svg montages
+    svg_montage_path: Annotated[Optional[List[Path]], Field(description="List of paths to SVG montages for visual QC")] = None
+    # svg_montage_path: Annotated[Optional[Path], Field(description="Path to an SVG montage for visual QC")] = None
+
+    # Path for IQMs or other QC files (e.g. CSV, JSON)
     iqm_path: Annotated[Optional[Path], Field(description="Path to an IQM or other QC SVG/file")] = None
 
 

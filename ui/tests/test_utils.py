@@ -123,24 +123,65 @@ class TestLoadMriData:
 class TestLoadSvgData:
     """Test load_svg_data function."""
 
-    def test_load_valid_svg(self, temp_dir, sample_svg_content):
-        """Test loading valid SVG file."""
+    def test_load_valid_svg_single(self, temp_dir, sample_svg_content):
+        """Test loading single valid SVG file."""
         svg_file = temp_dir / "montage.svg"
         svg_file.write_text(sample_svg_content)
         
         path_dict = {"svg_montage_path": svg_file}
         
-        result = load_svg_data(path_dict)
+        result = load_svg_data(temp_dir, path_dict)
         
         assert result is not None
-        assert "<svg" in result
-        assert sample_svg_content in result
+        assert isinstance(result, dict)
+        assert "montage.svg" in result
+        assert "<svg" in result["montage.svg"]
+        assert sample_svg_content in result["montage.svg"]
+
+    def test_load_multiple_svg_files(self, temp_dir, sample_svg_content):
+        """Test loading multiple SVG files."""
+        svg_file1 = temp_dir / "montage1.svg"
+        svg_file2 = temp_dir / "montage2.svg"
+        
+        svg_file1.write_text(sample_svg_content)
+        svg_file2.write_text("<svg>second montage</svg>")
+        
+        path_dict = {"svg_montage_path": [svg_file1, svg_file2]}
+        
+        result = load_svg_data(temp_dir, path_dict)
+        
+        assert result is not None
+        assert isinstance(result, dict)
+        assert len(result) == 2
+        assert "montage1.svg" in result
+        assert "montage2.svg" in result
+        assert sample_svg_content in result["montage1.svg"]
+        assert "second montage" in result["montage2.svg"]
+
+    def test_load_svg_partial_failure(self, temp_dir, sample_svg_content):
+        """Test loading multiple SVGs when one file doesn't exist."""
+        svg_file1 = temp_dir / "montage1.svg"
+        svg_file1.write_text(sample_svg_content)
+        
+        # Non-existent file
+        svg_file2 = temp_dir / "nonexistent.svg"
+        
+        path_dict = {"svg_montage_path": [svg_file1, svg_file2]}
+        
+        result = load_svg_data(temp_dir, path_dict)
+        
+        # Should return dict with only the existing file
+        assert result is not None
+        assert isinstance(result, dict)
+        assert len(result) == 1
+        assert "montage1.svg" in result
+        assert sample_svg_content in result["montage1.svg"]
 
     def test_load_svg_nonexistent_file(self, temp_dir):
         """Test loading non-existent SVG file."""
         path_dict = {"svg_montage_path": temp_dir / "nonexistent.svg"}
         
-        result = load_svg_data(path_dict)
+        result = load_svg_data(temp_dir, path_dict)
         
         assert result is None
 
@@ -148,7 +189,7 @@ class TestLoadSvgData:
         """Test loading SVG with None path."""
         path_dict = {"svg_montage_path": None}
         
-        result = load_svg_data(path_dict)
+        result = load_svg_data("", path_dict)
         
         assert result is None
 
@@ -159,7 +200,15 @@ class TestLoadSvgData:
         
         with patch("builtins.open", side_effect=IOError("Permission denied")):
             path_dict = {"svg_montage_path": svg_file}
-            result = load_svg_data(path_dict)
+            result = load_svg_data(temp_dir, path_dict)
+        
+        assert result is None
+
+    def test_load_svg_empty_list(self):
+        """Test loading SVG with empty list."""
+        path_dict = {"svg_montage_path": []}
+        
+        result = load_svg_data("", path_dict)
         
         assert result is None
 

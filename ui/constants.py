@@ -79,6 +79,12 @@ SESSION_KEYS = {
 UPLOAD_FILE_TYPES = ["csv", "tsv"]
 UPLOAD_SEPARATOR_INFERENCE = None  # Let pandas infer
 
+# Substitution formats for participant and session IDs in qc_config
+SUBSTITUTIONS_DICT = {
+    'participant_id': "[[NIPOPPY_BIDS_PARTICIPANT_ID]]",
+    'session_id': "[[NIPOPPY_BIDS_SESSION_ID]]"
+}
+
 # Messages and UI strings
 MESSAGES = {
     'welcome_title': 'Welcome to Nipoppy QC-Studio! 🚀',

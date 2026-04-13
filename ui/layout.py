@@ -10,7 +10,7 @@ from constants import (
     QC_RATINGS, DEFAULT_QC_RATING, NIIVUE_HEIGHT, SVG_HEIGHT, VIEW_MODES,
     OVERLAY_COLORMAPS, DEFAULT_OVERLAY_OPACITY, EQUAL_RATIO,
     RATING_IQM_RATIO, RATER_INFO_RATIO, UPLOAD_FILE_TYPES, MESSAGES, ERROR_MESSAGES,
-    SUCCESS_MESSAGES, INFO_MESSAGES
+    SUCCESS_MESSAGES, INFO_MESSAGES, SUBSTITUTIONS_DICT
 )
 from session_manager import SessionManager
 from niivue_viewer_manager import NiivueViewerManager, NiivueViewerConfig
@@ -60,7 +60,11 @@ def app(dataset_dir, participant_id, session_id, qc_pipeline, qc_task, qc_config
 			
 	
 	# parse qc config
-	qc_config = parse_qc_config(qc_config_path, qc_task) 
+	substitution_values = {
+		'participant_id': participant_id,
+		'session_id': session_id
+	}
+	qc_config = parse_qc_config(qc_config_path, qc_task, substitution_values) 
 
 	# Middle: QC Viewers (Niivue, SVG, IQM)
 	middle = st.container()

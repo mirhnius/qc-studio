@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 import pandas as pd
 from models import QCConfig
+from constants import SUBSTITUTIONS_DICT
 
-def parse_qc_config(qc_json, qc_task) -> dict:
+def parse_qc_config(qc_json, qc_task, substitution_values) -> dict:
 	"""Parse a QC JSON file using the QCConfig Pydantic model.
 
 	Returns a dict with keys:
@@ -22,6 +23,12 @@ def parse_qc_config(qc_json, qc_task) -> dict:
 	try:
 		# Pydantic v2 deprecates `parse_file`; read file and validate JSON string.
 		raw_text = qc_json_path.read_text()
+
+		# Make all the substitutions in the raw text before parsing with Pydantic
+		for key, substitution in SUBSTITUTIONS_DICT.items():
+			if substitution in raw_text:
+				raw_text = raw_text.replace(substitution, substitution_values.get(key))
+
 		qcconf = QCConfig.model_validate_json(raw_text)
 	except Exception:
 		# validation/parsing failed
@@ -68,16 +75,59 @@ def load_mri_data(dataset_dir, path_dict: dict) -> dict:
 	return file_bytes_dict
 
 
-def load_svg_data(dataset_dir, path_dict: dict) -> str | None:
-	"""Load SVG montage file content as string."""
-	svg_montage_path = Path(dataset_dir).joinpath(path_dict.get("svg_montage_path"))
-	if svg_montage_path and svg_montage_path.is_file():
-		try:
-			with open(svg_montage_path, "r") as f:
-				return f.read()
-		except Exception:
-			return None
-	return None
+def load_svg_data(dataset_dir, path_dict: dict) -> dict | None:
+	"""Load SVG montage file(s) content as dict.
+	
+	Loads one or more SVG files from paths specified in path_dict.
+	Supports both single path and list of paths for backward compatibility.
+	Handles string representations of path lists (e.g., from JSON parsing).
+	
+	Args:
+		dataset_dir: Base directory path
+		path_dict: Dictionary containing 'svg_montage_path' key with:
+			- Single Path/str (legacy), or
+			- List of Path/str objects (new), or
+			- String representation of list (from JSON)
+	
+	Returns:
+		Dict with format: {filename: svg_content_string}
+		Returns None if no valid SVG files are found.
+	
+	Example:
+		{
+			"montage_1.svg": "<svg>...</svg>",
+			"montage_2.svg": "<svg>...</svg>"
+		}
+	"""
+	svg_paths = path_dict.get("svg_montage_path")
+	if not svg_paths:
+		return None
+	
+	print(f"Original SVG paths from config: {svg_paths} (type: {type(svg_paths)})")
+
+	if isinstance(svg_paths, Path):
+		svg_paths = [svg_paths]
+	elif not isinstance(svg_paths, list):
+		# Fallback for other types
+		svg_paths = [svg_paths]
+
+	svg_data = {}
+	
+	print(f"Loading SVG data from paths: {svg_paths}")
+	for svg_path in svg_paths:
+		full_path = Path(dataset_dir).joinpath(str(svg_path))
+		print(f"Attempting to load SVG from: {full_path}")
+		if full_path and full_path.is_file():
+			try:
+				with open(full_path, "r") as f:
+					# Use filename as key for tab labels
+					filename = full_path.name
+					svg_data[filename] = f.read()
+			except Exception:
+				continue
+	
+	print(f"Loaded SVG data for paths: {list(svg_data.keys())}")
+	return svg_data if svg_data else None
 
 
 def load_iqm_data(dataset_dir, path_dict: dict) -> dict | None:

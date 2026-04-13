@@ -116,15 +116,29 @@ def _display_niivue_full_width(qc_config) -> None:
 
 
 def _display_svg_panel(dataset_dir, qc_config) -> None:
-	"""Display SVG montage panel.
+	"""Display SVG montage panel with tabs for multiple SVGs.
+	
+	If multiple SVG files are available, renders them as separate tabs.
+	If only one SVG file is available, displays it directly.
 	
 	Args:
+		dataset_dir: Root dataset directory
 		qc_config: QC configuration object
 	"""
 	st.header(MESSAGES['svg_header'])
 	svg_data = load_svg_data(dataset_dir, qc_config)
+	
 	if svg_data:
-		st.components.v1.html(svg_data, height=SVG_HEIGHT, scrolling=True)
+		# If multiple SVGs, create tabs
+		if len(svg_data) > 1:
+			tabs = st.tabs(list(svg_data.keys()))
+			for tab, (filename, content) in zip(tabs, svg_data.items()):
+				with tab:
+					st.components.v1.html(content, height=SVG_HEIGHT, scrolling=True)
+		else:
+			# Single SVG - display directly
+			svg_content = list(svg_data.values())[0]
+			st.components.v1.html(svg_content, height=SVG_HEIGHT, scrolling=True)
 	else:
 		st.info(ERROR_MESSAGES['svg_not_found'])
 
