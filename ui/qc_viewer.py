@@ -201,7 +201,7 @@ def _display_iqm_and_rating_side_by_side(
 		SessionManager.set_notes(notes)
 		
 		# Save button
-		if st.button(MESSAGES['save_csv_button'], use_container_width=True, key="side_by_side_save"):
+		if st.button(MESSAGES['save_csv_button'], width='stretch', key="side_by_side_save"):
 			_save_qc_record(
 				participant_id=participant_id,
 				session_id=session_id,

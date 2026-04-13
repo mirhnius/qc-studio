@@ -64,6 +64,8 @@ def load_mri_data(dataset_dir, path_dict: dict) -> dict:
 
 	base_mri_path = Path(dataset_dir).joinpath(path_dict.get("base_mri_image_path"))
 	overlay_mri_path = Path(dataset_dir).joinpath(path_dict.get("overlay_mri_image_path"))
+
+	print(f"Loading MRI data from dataset_dir: {dataset_dir} with paths: base_mri={base_mri_path}, overlay_mri={overlay_mri_path}")
 	file_bytes_dict = {}
 
 	if base_mri_path and Path(base_mri_path).is_file():
@@ -103,8 +105,6 @@ def load_svg_data(dataset_dir, path_dict: dict) -> dict | None:
 	svg_paths = path_dict.get("svg_montage_path")
 	if not svg_paths:
 		return None
-	
-	print(f"Original image paths from config: {svg_paths} (type: {type(svg_paths)})")
 
 	if isinstance(svg_paths, Path):
 		svg_paths = [svg_paths]
@@ -113,11 +113,9 @@ def load_svg_data(dataset_dir, path_dict: dict) -> dict | None:
 		svg_paths = [svg_paths]
 
 	image_data = {}
-	
-	print(f"Loading image data from paths: {svg_paths}")
+
 	for i, img_path in enumerate(svg_paths):
-		full_path = Path(dataset_dir).joinpath(str(img_path))
-		print(f"Attempting to load image from: {full_path}, exists: {full_path.is_file()}")
+		full_path = Path(dataset_dir).joinpath(str(img_path))		
 		
 		if full_path and full_path.is_file():
 			file_ext = full_path.suffix.lower()
@@ -151,6 +149,11 @@ def load_svg_data(dataset_dir, path_dict: dict) -> dict | None:
 				continue	
 	
 	print(f"Loaded image data for files: {list(image_data.keys())}")
+
+	# Create a montage of all the images if there are multiple images
+	# (This is a placeholder - actual montage creation would depend on requirements)
+
+
 	return image_data if image_data else None
 
 

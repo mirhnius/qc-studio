@@ -39,7 +39,7 @@ def display_qc_rating_and_pagination(
 			SessionManager.set_notes(notes)
 			
 			# Save button
-			if st.button(MESSAGES['save_csv_button'], use_container_width=True):
+			if st.button(MESSAGES['save_csv_button'], width='stretch'):
 				_save_qc_record(
 					participant_id=participant_id,
 					session_id=session_id,
@@ -127,12 +127,12 @@ def _display_pagination_controls(
 	col1, col2, col3 = st.columns([1, 1, 1])
 	
 	with col1:
-		if st.button(MESSAGES['previous_button'], use_container_width=True):
+		if st.button(MESSAGES['previous_button'], width='stretch'):
 			SessionManager.previous_page()
 			st.rerun()
 	
 	with col2:
-		if st.button(MESSAGES['confirm_next_button'], use_container_width=True):
+		if st.button(MESSAGES['confirm_next_button'], width='stretch'):
 			_save_and_advance(
 				participant_id=participant_id,
 				session_id=session_id,
@@ -143,12 +143,12 @@ def _display_pagination_controls(
 			)
 	
 	with col3:
-		if st.button(MESSAGES['next_button'], use_container_width=True):
+		if st.button(MESSAGES['next_button'], width='stretch'):
 			SessionManager.next_page()
 			st.rerun()
 	
 	st.divider()
-	if st.button(MESSAGES['back_landing_button'], use_container_width=True):
+	if st.button(MESSAGES['back_landing_button'], width='stretch'):
 		SessionManager.set_landing_page_complete(False)
 		st.rerun()
 
