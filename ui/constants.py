@@ -62,6 +62,12 @@ RATER_INFO_RATIO = [1, 1, 1]
 # Pagination
 DEFAULT_BATCH_SIZE = 1
 
+# Montage grid settings
+DEFAULT_MONTAGE_MAX_ROWS = None  # None means auto-calculate
+DEFAULT_MONTAGE_MAX_COLS = None  # None means auto-calculate
+MIN_MONTAGE_GRID_SIZE = 1
+MAX_MONTAGE_GRID_SIZE = 10
+
 # Session state keys
 SESSION_KEYS = {
     'current_page': 'current_page',
@@ -72,7 +78,9 @@ SESSION_KEYS = {
     'rater_fatigue': 'rater_fatigue',
     'notes': 'notes',
     'landing_page_complete': 'landing_page_complete',
-    'selected_panels': 'selected_panels'
+    'selected_panels': 'selected_panels',
+    'montage_max_rows': 'montage_max_rows',
+    'montage_max_cols': 'montage_max_cols'
 }
 
 # File upload settings

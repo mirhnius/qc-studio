@@ -38,27 +38,6 @@ def app(dataset_dir, participant_id, session_id, qc_pipeline, qc_task, qc_config
 		show_congratulations_page(qc_task, out_dir, total_participants, drop_duplicates)
 		return
 
-	# Top container: participant info
-	top = st.container()
-	with top:
-		st.title(MESSAGES['qc_title'])
-		
-		# Display rater info summary
-		col1, col2, col3 = st.columns(RATER_INFO_RATIO)
-		with col1:
-			st.metric("Rater", SessionManager.get_rater_id())
-		with col2:
-			st.metric("Experience", SessionManager.get_rater_experience().split('(')[0].strip())
-		with col3:
-			st.metric("Fatigue Level", SessionManager.get_rater_fatigue().split('☕')[0].strip())
-
-		col_participant_info, col_pipe_info = st.columns(2)
-		with col_participant_info:
-			st.write(f"### Participant: {participant_id} | Session: {session_id}")
-		with col_pipe_info:
-			st.write(f"### Pipeline: {qc_pipeline} | Task: {qc_task}")
-			
-	
 	# parse qc config
 	substitution_values = {
 		'participant_id': participant_id,

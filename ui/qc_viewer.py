@@ -19,15 +19,19 @@ def display_qc_viewers(
 ) -> None:
 	"""Display QC viewers (Niivue, SVG, IQM panels) based on user selection.
 	
-	Layout strategy:
-	- If all three panels (Niivue + SVG + IQM): 3-column (controls | Niivue | SVG), then IQM and rating in 2-columns
-	- If Niivue + SVG selected: 3-column layout (controls | Niivue | SVG)
-	- If SVG only selected: Full-width SVG
-	- If Niivue + IQM selected: 3-column layout (controls | Niivue | IQM)
-	- If Niivue only selected: Full-width Niivue
+	Layout: Fixed QC rating form on left | Viewer panels on right
+	
+	The QC rating column is always visible on the left regardless of panel selection.
+	Viewer panels adjust on the right based on selected panels.
 	
 	Args:
+		dataset_dir: Root dataset directory
 		qc_config: QC configuration object
+		participant_id: Current participant ID
+		session_id: Current session ID
+		qc_pipeline: QC pipeline name
+		qc_task: QC task name
+		total_participants: Total number of participants
 	"""
 	st.container()
 	
@@ -43,38 +47,47 @@ def display_qc_viewers(
 	show_svg = selected_panels.get('svg', True)
 	show_iqm = selected_panels.get('iqm', False)
 	
-	# All three panels selected: 3-column on top, IQM and QC rating in 2-columns below
-	if show_niivue and show_svg and show_iqm:
-		_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
-		st.divider()
-		_display_iqm_and_rating_side_by_side(
-			dataset_dir=dataset_dir,
+	# Main layout: Rating column on left, viewer panels on right
+	rating_col, panels_col = st.columns([0.25, 0.75], gap="medium")
+	
+	# Left column: QC Rating form (fixed, always visible)
+	with rating_col:
+		_display_qc_rating_form(
 			participant_id=participant_id,
 			session_id=session_id,
 			qc_pipeline=qc_pipeline,
 			qc_task=qc_task,
 			total_participants=total_participants
-	)
-	# 3-column layout: Niivue + SVG (no IQM)
-	elif show_niivue and show_svg:
-		_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
-	# 3-column layout: Niivue + IQM (no SVG)
-	elif show_niivue and show_iqm:
-		_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
-	# Full-width Niivue only
-	elif show_niivue:
-		_display_niivue_full_width(qc_config)
-	# Full-width SVG only
-	elif show_svg:
-		_display_svg_panel(dataset_dir, qc_config)
-	# Full-width IQM only
-	elif show_iqm:
-		_display_iqm_panel()
+		)
+	
+	# Right column: Viewer panels based on selection
+	with panels_col:
+		# All three panels selected
+		if show_niivue and show_svg and show_iqm:
+			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
+			st.divider()
+			_display_iqm_panel()
+		# Niivue + SVG (no IQM)
+		elif show_niivue and show_svg:
+			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
+		# Niivue + IQM (no SVG)
+		elif show_niivue and show_iqm:
+			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
+		# Full-width Niivue only
+		elif show_niivue:
+			_display_niivue_full_width(qc_config)
+		# Full-width SVG only
+		elif show_svg:
+			_display_svg_panel(dataset_dir, qc_config)
+		# Full-width IQM only
+		elif show_iqm:
+			_display_iqm_panel()
 
 
 def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_config) -> None:
-	"""Display 3-column layout: controls | Niivue viewer | Secondary panel (SVG or IQM).
+	"""Display 3-column layout: Niivue with hidden controls | Secondary panel.
 	
+	Niivue controls are hidden in an expander attached to the Niivue viewer column.
 	Used when Niivue is selected with either SVG or IQM panel.
 	
 	Args:
@@ -82,14 +95,13 @@ def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_
 		selected_panels: Dictionary of selected panels
 		qc_config: QC configuration object
 	"""
-	ctrl_col, viewer_col, panel_col = st.columns(NIIVUE_SECONDARY_RATIO, gap="small")
+	viewer_col, panel_col = st.columns([0.3, 0.7], gap="small")
 	
-	# Left column: Niivue controls
-	with ctrl_col:
-		niivue_config = NiivueViewerManager.render_controls_panel()
-	
-	# Middle column: Niivue viewer (header rendered by render_viewer)
+	# Left column: Niivue viewer with hidden controls
 	with viewer_col:
+		with st.expander("🎮 Niivue Controls", expanded=False):
+			niivue_config = NiivueViewerManager.render_controls_panel()
+		
 		NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config)
 	
 	# Right column: SVG or IQM panel
@@ -101,18 +113,15 @@ def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_
 
 
 def _display_niivue_full_width(qc_config) -> None:
-	"""Display Niivue in full width with controls on the left.
+	"""Display Niivue in full width with hidden controls in an expander.
 	
 	Args:
 		qc_config: QC configuration object
 	"""
-	left_col, right_col = st.columns([0.32, 0.68], gap="small")
-	
-	with left_col:
+	with st.expander("🎮 Niivue Controls", expanded=False):
 		niivue_config = NiivueViewerManager.render_controls_panel()
 	
-	with right_col:
-		NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config)
+	NiivueViewerManager.render_viewer(qc_config, niivue_config)
 
 
 def _display_svg_panel(dataset_dir, qc_config) -> None:
@@ -130,7 +139,12 @@ def _display_svg_panel(dataset_dir, qc_config) -> None:
 		qc_config: QC configuration object
 	"""
 	st.header(MESSAGES['svg_header'])
-	image_data = load_svg_data(dataset_dir, qc_config)
+	
+	# Get montage grid settings from session manager
+	max_montage_rows = SessionManager.get_montage_max_rows()
+	max_montage_cols = SessionManager.get_montage_max_cols()
+	
+	image_data = load_svg_data(dataset_dir, qc_config, max_montage_rows, max_montage_cols)
 	
 	if image_data:
 		# If multiple images, create tabs
@@ -162,55 +176,59 @@ def _render_image(image_data: dict, filename: str) -> None:
 		st.components.v1.html(content, height=SVG_HEIGHT, scrolling=True)
 	elif image_type in ["png", "jpeg"]:
 		# Display PNG/JPEG as image
-		st.image(content, use_container_width=True, caption=filename)
+		st.image(content, width='stretch', caption=filename)
 	else:
 		st.warning(f"Unsupported image type: {image_type}")
 
 
-def _display_iqm_and_rating_side_by_side(
-	dataset_dir,
+def _display_qc_rating_form(
 	participant_id: str = None,
 	session_id: str = None,
 	qc_pipeline: str = None,
 	qc_task: str = None,
 	total_participants: int = None
 ) -> None:
-	"""Display IQM metrics panel in 2-column layout.
-	
-	Left column shows IQM metrics. Right column shows QC rating form.
+	"""Display participant info and QC rating form in fixed left column.
 	
 	Args:
-		dataset_dir: Root dataset directory
 		participant_id: Current participant ID
 		session_id: Current session ID
 		qc_pipeline: QC pipeline name
 		qc_task: QC task name
 		total_participants: Total number of participants
 	"""
-	metrics_col, rating_col = st.columns([0.5, 0.5], gap="small")
+	# Display participant information
+	st.markdown("#### 📋 Session Info")
+	st.write(f"**Participant:** {participant_id}")
+	st.write(f"**Session:** {session_id}")
+	st.write(f"**Pipeline:** {qc_pipeline}")
+	st.write(f"**Task:** {qc_task}")
 	
-	# Left column: IQM metrics
-	with metrics_col:
-		_display_iqm_panel()
+	# Display rater information
+	st.markdown("#### 👤 Rater Info")
+	st.write(f"**Rater:** {SessionManager.get_rater_id()}")
+	st.write(f"**Experience:** {SessionManager.get_rater_experience().split('(')[0].strip()}")
+	st.write(f"**Fatigue:** {SessionManager.get_rater_fatigue().split('☕')[0].strip()}")
 	
-	# Right column: QC rating form
-	with rating_col:
-		st.subheader(MESSAGES['qc_rating_header'])
-		rating = st.radio(MESSAGES['qc_rating_prompt'], options=QC_RATINGS, index=0, key="side_by_side_rating")
-		notes = st.text_area(MESSAGES['qc_notes_prompt'], value=SessionManager.get_notes(), key="side_by_side_notes", height=120)
-		SessionManager.set_notes(notes)
-		
-		# Save button
-		if st.button(MESSAGES['save_csv_button'], width='stretch', key="side_by_side_save"):
-			_save_qc_record(
-				participant_id=participant_id,
-				session_id=session_id,
-				qc_pipeline=qc_pipeline,
-				qc_task=qc_task,
-				rating=rating,
-				notes=notes,
-				total_participants=total_participants
-			)
+	st.divider()
+	
+	# QC Rating section
+	st.markdown("#### 📊 QC Rating")
+	rating = st.radio(MESSAGES['qc_rating_prompt'], options=QC_RATINGS, index=0, key="qc_rating")
+	notes = st.text_area(MESSAGES['qc_notes_prompt'], value=SessionManager.get_notes(), key="qc_notes", height=120)
+	SessionManager.set_notes(notes)
+	
+	# Save button
+	if st.button(MESSAGES['save_csv_button'], use_container_width=True, key="qc_save"):
+		_save_qc_record(
+			participant_id=participant_id,
+			session_id=session_id,
+			qc_pipeline=qc_pipeline,
+			qc_task=qc_task,
+			rating=rating,
+			notes=notes,
+			total_participants=total_participants
+		)
 
 
 def _display_iqm_panel() -> None:

@@ -1,6 +1,6 @@
 """Session state management for QC-Studio UI."""
 import streamlit as st
-from constants import DEFAULT_PANELS, SESSION_KEYS
+from constants import DEFAULT_PANELS, SESSION_KEYS, DEFAULT_MONTAGE_MAX_ROWS, DEFAULT_MONTAGE_MAX_COLS
 
 
 class SessionManager:
@@ -18,7 +18,9 @@ class SessionManager:
             SESSION_KEYS['rater_fatigue']: None,
             SESSION_KEYS['notes']: '',
             SESSION_KEYS['landing_page_complete']: False,
-            SESSION_KEYS['selected_panels']: DEFAULT_PANELS.copy()
+            SESSION_KEYS['selected_panels']: DEFAULT_PANELS.copy(),
+            SESSION_KEYS['montage_max_rows']: DEFAULT_MONTAGE_MAX_ROWS,
+            SESSION_KEYS['montage_max_cols']: DEFAULT_MONTAGE_MAX_COLS
         }
         
         for key, value in defaults.items():
@@ -186,3 +188,24 @@ class SessionManager:
     def reset_for_new_participant():
         """Reset session state for next participant."""
         st.session_state[SESSION_KEYS['notes']] = ''
+    
+    # Montage Grid Settings Methods
+    @staticmethod
+    def get_montage_max_rows() -> int | None:
+        """Get maximum rows for montage grid (None means auto-calculate)."""
+        return st.session_state.get(SESSION_KEYS['montage_max_rows'], DEFAULT_MONTAGE_MAX_ROWS)
+    
+    @staticmethod
+    def set_montage_max_rows(rows: int | None):
+        """Set maximum rows for montage grid."""
+        st.session_state[SESSION_KEYS['montage_max_rows']] = rows
+    
+    @staticmethod
+    def get_montage_max_cols() -> int | None:
+        """Get maximum columns for montage grid (None means auto-calculate)."""
+        return st.session_state.get(SESSION_KEYS['montage_max_cols'], DEFAULT_MONTAGE_MAX_COLS)
+    
+    @staticmethod
+    def set_montage_max_cols(cols: int | None):
+        """Set maximum columns for montage grid."""
+        st.session_state[SESSION_KEYS['montage_max_cols']] = cols

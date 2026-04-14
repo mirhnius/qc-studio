@@ -3,7 +3,8 @@ import pandas as pd
 import streamlit as st
 from constants import (
     EXPERIENCE_LEVELS, FATIGUE_LEVELS, PANEL_CONFIG, UPLOAD_FILE_TYPES,
-    MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES, SVG_HEIGHT
+    MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES, SVG_HEIGHT,
+    MIN_MONTAGE_GRID_SIZE, MAX_MONTAGE_GRID_SIZE
 )
 from session_manager import SessionManager
 from models import QCRecord
@@ -43,9 +44,11 @@ def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 	with col1:
 		_render_rater_form()
 	
-	# Middle column: Panel Selection
+	# Middle column: Panel Selection and Montage Settings
 	with col2:
 		selected_panels = PanelLayoutManager.render_panel_header_with_controls()
+		st.divider()
+		_render_montage_settings()
 	
 	# Right column: CSV Upload
 	with col3:
@@ -279,3 +282,61 @@ def _display_panel_layout_preview(selected_panels: dict) -> None:
 	elif show_iqm:
 		st.write("**Layout:** Full-width (QC Metrics)")
 		st.info("📈 **QC Metrics**\n\nQC metrics will be displayed across the full width")
+
+
+def _render_montage_settings() -> None:
+	"""Render montage grid configuration settings.
+	
+	Allows users to specify maximum rows and columns for the SVG montage grid.
+	When both are set to None (auto), the montage will optimize for square aspect ratio.
+	"""
+	st.markdown("#### 🎨 SVG Montage Grid Settings")
+	
+	with st.form("montage_settings_form"):
+		col1, col2 = st.columns(2)
+		
+		with col1:
+			current_rows = SessionManager.get_montage_max_rows()
+			montage_rows = st.number_input(
+				"Max Rows (use checkbox for auto-calculation)",
+				min_value=MIN_MONTAGE_GRID_SIZE,
+				max_value=MAX_MONTAGE_GRID_SIZE,
+				value=current_rows if current_rows else MIN_MONTAGE_GRID_SIZE,
+				step=1,
+				help="Maximum number of rows in the SVG montage grid"
+			)
+			use_auto_rows = st.checkbox("Auto-calculate rows", value=(current_rows is None))
+		
+		with col2:
+			current_cols = SessionManager.get_montage_max_cols()
+			montage_cols = st.number_input(
+				"Max Columns (use checkbox for auto-calculation)",
+				min_value=MIN_MONTAGE_GRID_SIZE,
+				max_value=MAX_MONTAGE_GRID_SIZE,
+				value=current_cols if current_cols else MIN_MONTAGE_GRID_SIZE,
+				step=1,
+				help="Maximum number of columns in the SVG montage grid"
+			)
+			use_auto_cols = st.checkbox("Auto-calculate columns", value=(current_cols is None))
+		
+		submit_montage = st.form_submit_button("Apply Montage Settings", use_container_width=True)
+		
+		if submit_montage:
+			# Set to None if auto-calculate is checked, otherwise use the specified value
+			rows_to_set = None if use_auto_rows else montage_rows
+			cols_to_set = None if use_auto_cols else montage_cols
+			
+			SessionManager.set_montage_max_rows(rows_to_set)
+			SessionManager.set_montage_max_cols(cols_to_set)
+			
+			# Display confirmation
+			auto_text = "(auto)" if use_auto_rows else f"({montage_rows})"
+			auto_text_cols = "(auto)" if use_auto_cols else f"({montage_cols})"
+			st.success(f"✅ Montage settings updated: Max rows {auto_text}, Max columns {auto_text_cols}")
+	
+	# Show current settings
+	current_rows = SessionManager.get_montage_max_rows()
+	current_cols = SessionManager.get_montage_max_cols()
+	rows_display = "Auto" if current_rows is None else str(current_rows)
+	cols_display = "Auto" if current_cols is None else str(current_cols)
+	st.info(f"📋 Current montage settings: Max rows = {rows_display}, Max columns = {cols_display}")

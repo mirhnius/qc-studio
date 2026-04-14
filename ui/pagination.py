@@ -1,9 +1,7 @@
-"""Pagination and QC rating component."""
-from datetime import datetime
+"""Pagination component."""
 import streamlit as st
-from constants import QC_RATINGS, MESSAGES
+from constants import MESSAGES
 from session_manager import SessionManager
-from models import QCRecord
 
 
 def display_qc_rating_and_pagination(
@@ -13,7 +11,9 @@ def display_qc_rating_and_pagination(
 	qc_task: str,
 	total_participants: int
 ) -> None:
-	"""Display QC rating form and pagination controls.
+	"""Display pagination controls.
+	
+	QC rating form is now fixed in the left column of qc_viewer.py
 	
 	Args:
 		participant_id: Current participant ID
@@ -22,38 +22,9 @@ def display_qc_rating_and_pagination(
 		qc_task: QC task name
 		total_participants: Total number of participants
 	"""
-	# Check if all three panels are selected (QC rating will be shown in side-by-side layout)
-	selected_panels = SessionManager.get_selected_panels()
-	show_niivue = selected_panels.get('niivue_col', selected_panels.get('niivue', True))
-	show_svg = selected_panels.get('svg_col', selected_panels.get('svg', True))
-	show_iqm = selected_panels.get('iqm_col', selected_panels.get('iqm', False))
-	all_three_panels_selected = show_niivue and show_svg and show_iqm
-	
 	bottom = st.container()
 	with bottom:
-		# QC rating section (only show if NOT all three panels selected)
-		if not all_three_panels_selected:
-			st.subheader(MESSAGES['qc_rating_header'])
-			rating = st.radio(MESSAGES['qc_rating_prompt'], options=QC_RATINGS, index=0)
-			notes = st.text_area(MESSAGES['qc_notes_prompt'], value=SessionManager.get_notes())
-			SessionManager.set_notes(notes)
-			
-			# Save button
-			if st.button(MESSAGES['save_csv_button'], width='stretch'):
-				_save_qc_record(
-					participant_id=participant_id,
-					session_id=session_id,
-					qc_pipeline=qc_pipeline,
-					qc_task=qc_task,
-					rating=rating,
-					notes=notes,
-					total_participants=total_participants
-				)
-			
-			# Pagination controls
-			st.divider()
-		else:
-			st.divider()
+		st.divider()
 		
 		_display_pagination_controls(
 			current_page=SessionManager.get_current_page(),
@@ -65,40 +36,6 @@ def display_qc_rating_and_pagination(
 			rating="",
 			notes=""
 		)
-
-
-def _save_qc_record(participant_id: str, session_id: str, qc_pipeline: str, 
-					 qc_task: str, rating: str, notes: str, total_participants: int) -> None:
-	"""Save a QC record and mark as complete.
-	
-	Args:
-		participant_id: Participant ID
-		session_id: Session ID
-		qc_pipeline: QC pipeline name
-		qc_task: QC task name
-		rating: QC rating value
-		notes: QC notes
-		total_participants: Total participants (used to detect end of QC)
-	"""
-	now = datetime.now()
-	timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
-	
-	record = QCRecord(
-		participant_id=participant_id,
-		session_id=session_id,
-		qc_task=qc_task,
-		pipeline=qc_pipeline,
-		timestamp=timestamp,
-		rater_id=SessionManager.get_rater_id(),
-		rater_experience=SessionManager.get_rater_experience(),
-		rater_fatigue=SessionManager.get_rater_fatigue(),
-		final_qc=rating,
-		notes=notes,
-	)
-	
-	SessionManager.add_qc_record(record)
-	SessionManager.set_current_page(total_participants + 1)
-	st.rerun()
 
 
 def _display_pagination_controls(
