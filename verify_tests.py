@@ -94,7 +94,8 @@ def main():
     try:
         sys.path.insert(0, str(ui_dir))
         from models import QCRecord, MetricQC, QCTask, QCConfig
-        from utils import parse_qc_config, load_mri_data, load_svg_data
+        from utils.config import parse_qc_config
+        from utils.data_loaders import load_mri_data, load_svg_data
         print("  ✓ All imports successful")
     except Exception as e:
         print(f"  ✗ Import error: {e}")
