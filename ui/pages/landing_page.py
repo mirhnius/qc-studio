@@ -93,6 +93,14 @@ def _display_rater_form() -> None:
 			index=default_fatigue_idx
 		)
 		
+		# Autoplay countdown duration
+		autoplay_duration = st.slider(
+			"⏱️ Autoplay duration (seconds)",
+			min_value=2, max_value=10,
+			value=SessionManager.get_autoplay_duration(),
+			step=1
+		)
+		
 		submit_rater = st.form_submit_button(MESSAGES['rater_form_button'], use_container_width=True)
 		
 		if submit_rater:
@@ -104,6 +112,7 @@ def _display_rater_form() -> None:
 				SessionManager.set_rater_id(rater_id_clean)
 				SessionManager.set_rater_experience(rater_experience)
 				SessionManager.set_rater_fatigue(rater_fatigue)
+				SessionManager.set_autoplay_duration(autoplay_duration)
 				SessionManager.set_landing_page_complete(True)
 				st.rerun()
 

@@ -42,7 +42,8 @@ def display_qc_viewers(
 		start_time = SessionManager.get_autoplay_start_time()
 		if start_time > 0:
 			elapsed = time.time() - start_time
-			if elapsed >= 5:
+			duration = SessionManager.get_autoplay_duration()
+			if elapsed >= duration:
 				if SessionManager.get_current_page() < total_participants:
 					# Save the current participant's QC record before advancing
 					_record_qc_for_current_participant(
@@ -349,7 +350,8 @@ def _display_pagination_in_sidebar(
 		start_time = SessionManager.get_autoplay_start_time()
 		if start_time > 0:
 			elapsed = time.time() - start_time
-			countdown = max(0, 5 - int(elapsed))
+			duration = SessionManager.get_autoplay_duration()
+			countdown = max(0, duration - int(elapsed))
 			st.markdown(f"## ⏱️ Next page in: **{countdown}s**")
 		else:
 			st.info("⏸️ Autoplay active")

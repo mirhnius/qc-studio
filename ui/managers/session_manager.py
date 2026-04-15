@@ -24,7 +24,8 @@ class SessionManager:
             'autoplay_enabled': False,
             'last_confirmed_page': 0,
             'autoplay_countdown': 0,
-            'autoplay_start_time': 0.0
+            'autoplay_start_time': 0.0,
+            'autoplay_duration': 5
         }
         
         for key, value in defaults.items():
@@ -263,3 +264,13 @@ class SessionManager:
     def set_autoplay_start_time(t: float):
         """Set the autoplay countdown start timestamp."""
         st.session_state['autoplay_start_time'] = t
+
+    @staticmethod
+    def get_autoplay_duration() -> int:
+        """Get the autoplay countdown duration in seconds (2–10)."""
+        return st.session_state.get('autoplay_duration', 5)
+
+    @staticmethod
+    def set_autoplay_duration(seconds: int):
+        """Set the autoplay countdown duration in seconds (2–10)."""
+        st.session_state['autoplay_duration'] = max(2, min(10, seconds))
