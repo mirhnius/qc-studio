@@ -1,10 +1,10 @@
-dataset_dir="/home/nikhil/projects/Parkinsons/qpn/releases/enigma/local/"
-participant_list="pipelines/fsqc/participants.tsv"
-qc_pipeline="fsqc"
-qc_json="../pipelines/fsqc/qc.json"
-qc_task="FS_volume_wf_qc"
-output_dir="./output"
 pipeline_script="ui/main.py"
+qc_pipeline="fmriprep"
+qc_task="anat_wf_qc"
+qc_json="../pipelines/demo/qc.json"
+dataset_dir="sample_data"
+participant_list="sample_data/qc_participants.tsv"
+output_dir="./output"
 port_number="8501"
 
 streamlit run $pipeline_script --server.port=$port_number -- \

@@ -88,7 +88,7 @@ cd ui
 
 ## 🔗 Related Projects
 
-- [Nipoppy](https://github.com/nipoppy/nipoppy) - Pipeline wrapper for BIDS data
+- [Nipoppy](https://github.com/nipoppy/nipoppy) - Lightweight framework for standardized organization and processing of neuroimaging-clinical datasets.
 - [NiiVue](https://github.com/niivue/niivue) - 3D medical image viewer
 - [Streamlit](https://streamlit.io/) - Python web app framework
 
