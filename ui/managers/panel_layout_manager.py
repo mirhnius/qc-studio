@@ -1,7 +1,7 @@
 """Panel layout and management utilities."""
 import streamlit as st
 from constants import PANEL_CONFIG, MESSAGES
-from session_manager import SessionManager
+from .session_manager import SessionManager
 
 
 class PanelLayoutManager:

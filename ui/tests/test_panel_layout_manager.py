@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import streamlit as st
-from panel_layout_manager import PanelLayoutManager
+from managers.panel_layout_manager import PanelLayoutManager
 from constants import PANEL_CONFIG, NIIVUE_SVG_RATIO, EQUAL_RATIO, RATING_IQM_RATIO
 
 

@@ -1,9 +1,9 @@
 """QC viewer component for displaying MRI, SVG, and metrics panels."""
 import streamlit as st
-from constants import SVG_HEIGHT, MESSAGES, ERROR_MESSAGES, QC_RATINGS, NIIVUE_SECONDARY_RATIO
-from utils import load_svg_data
-from niivue_viewer_manager import NiivueViewerManager
-from session_manager import SessionManager
+from constants import SVG_HEIGHT, MESSAGES, ERROR_MESSAGES, QC_RATINGS, NIIVUE_SECONDARY_RATIO, VIEW_MODES, OVERLAY_COLORMAPS
+from utils.data_loaders import load_svg_data
+from managers.niivue_viewer_manager import NiivueViewerManager, NiivueViewerConfig
+from managers.session_manager import SessionManager
 from models import QCRecord
 from datetime import datetime
 
@@ -33,7 +33,7 @@ def display_qc_viewers(
 		qc_task: QC task name
 		total_participants: Total number of participants
 	"""
-	st.container()
+	st.title("🧠 QC-Studio")
 	
 	# Get selected panels and normalize naming for backward compatibility
 	selected_panels = SessionManager.get_selected_panels()
@@ -50,7 +50,7 @@ def display_qc_viewers(
 	# Main layout: Rating column on left, viewer panels on right
 	rating_col, panels_col = st.columns([0.25, 0.75], gap="medium")
 	
-	# Left column: QC Rating form (fixed, always visible)
+	# Left column: QC Rating form + Pagination (fixed, always visible)
 	with rating_col:
 		_display_qc_rating_form(
 			participant_id=participant_id,
@@ -59,23 +59,37 @@ def display_qc_viewers(
 			qc_task=qc_task,
 			total_participants=total_participants
 		)
+		
+		st.divider()
+		
+		_display_pagination_in_sidebar(
+			current_page=SessionManager.get_current_page(),
+			total_participants=total_participants,
+			participant_id=participant_id,
+			session_id=session_id,
+			qc_pipeline=qc_pipeline,
+			qc_task=qc_task
+		)
 	
 	# Right column: Viewer panels based on selection
 	with panels_col:
 		# All three panels selected
 		if show_niivue and show_svg and show_iqm:
-			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
+			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config,
+			                                      participant_id, session_id)
 			st.divider()
 			_display_iqm_panel()
 		# Niivue + SVG (no IQM)
 		elif show_niivue and show_svg:
-			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
+			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config,
+			                                      participant_id, session_id)
 		# Niivue + IQM (no SVG)
 		elif show_niivue and show_iqm:
-			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config)
+			_display_niivue_with_secondary_panel(dataset_dir, selected_panels, qc_config,
+			                                      participant_id, session_id)
 		# Full-width Niivue only
 		elif show_niivue:
-			_display_niivue_full_width(qc_config)
+			_display_niivue_full_width(dataset_dir, qc_config, participant_id, session_id)
 		# Full-width SVG only
 		elif show_svg:
 			_display_svg_panel(dataset_dir, qc_config)
@@ -84,7 +98,8 @@ def display_qc_viewers(
 			_display_iqm_panel()
 
 
-def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_config) -> None:
+def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_config,
+                                           participant_id: str = None, session_id: str = None) -> None:
 	"""Display 3-column layout: Niivue with hidden controls | Secondary panel.
 	
 	Niivue controls are hidden in an expander attached to the Niivue viewer column.
@@ -94,15 +109,23 @@ def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_
 		dataset_dir: Root dataset directory
 		selected_panels: Dictionary of selected panels
 		qc_config: QC configuration object
+		participant_id: Current participant ID
+		session_id: Current session ID
 	"""
 	viewer_col, panel_col = st.columns([0.3, 0.7], gap="small")
 	
-	# Left column: Niivue viewer with hidden controls
+	# Left column: Niivue viewer with hidden controls at bottom
 	with viewer_col:
-		with st.expander("🎮 Niivue Controls", expanded=False):
-			niivue_config = NiivueViewerManager.render_controls_panel()
+		# Get niivue config from session state or render_controls_panel
+		niivue_config = _get_or_render_niivue_config()
 		
-		NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config)
+		# Render viewer at top
+		NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config, 
+		                                   participant_id, session_id)
+		
+		# Render controls in expander at bottom
+		with st.expander("🎮 Niivue Controls", expanded=False):
+			NiivueViewerManager.render_controls_panel()
 	
 	# Right column: SVG or IQM panel
 	with panel_col:
@@ -112,16 +135,53 @@ def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_
 			_display_iqm_panel()
 
 
-def _display_niivue_full_width(qc_config) -> None:
-	"""Display Niivue in full width with hidden controls in an expander.
+def _display_niivue_full_width(dataset_dir, qc_config,
+                               participant_id: str = None, session_id: str = None) -> None:
+	"""Display Niivue in full width with hidden controls in an expander at bottom.
 	
 	Args:
+		dataset_dir: Root dataset directory
 		qc_config: QC configuration object
+		participant_id: Current participant ID
+		session_id: Current session ID
 	"""
-	with st.expander("🎮 Niivue Controls", expanded=False):
-		niivue_config = NiivueViewerManager.render_controls_panel()
+	# Get niivue config from session state or render_controls_panel
+	niivue_config = _get_or_render_niivue_config()
 	
-	NiivueViewerManager.render_viewer(qc_config, niivue_config)
+	# Render viewer at top
+	NiivueViewerManager.render_viewer(dataset_dir, qc_config, niivue_config,
+	                                   participant_id, session_id)
+	
+	# Render controls in expander at bottom
+	with st.expander("🎮 Niivue Controls", expanded=False):
+		NiivueViewerManager.render_controls_panel()
+
+
+def _get_or_render_niivue_config():
+	"""Get niivue config from session state or render default config.
+	
+	This function allows the Niivue viewer to be displayed before the controls expander.
+	On first run, it returns a default config. On subsequent runs after user changes controls,
+	it returns the updated config from session state (which render_controls_panel also updates).
+	
+	Returns:
+		NiivueViewerConfig: Configuration object for the Niivue viewer
+	"""
+	# Check if we have a stored config from previous control panel interaction
+	if 'niivue_config' not in st.session_state:
+		# First run: create and store a default config
+		default_config = NiivueViewerConfig(
+			view_mode=VIEW_MODES[0],
+			overlay_colormap=OVERLAY_COLORMAPS[0],
+			show_crosshair=False,
+			radiological=False,
+			show_colorbar=True,
+			interpolation=True,
+			show_overlay=False
+		)
+		st.session_state.niivue_config = default_config
+	
+	return st.session_state.niivue_config
 
 
 def _display_svg_panel(dataset_dir, qc_config) -> None:
@@ -217,9 +277,52 @@ def _display_qc_rating_form(
 	rating = st.radio(MESSAGES['qc_rating_prompt'], options=QC_RATINGS, index=0, key="qc_rating")
 	notes = st.text_area(MESSAGES['qc_notes_prompt'], value=SessionManager.get_notes(), key="qc_notes", height=120)
 	SessionManager.set_notes(notes)
+
+
+def _display_pagination_in_sidebar(
+	current_page: int,
+	total_participants: int,
+	participant_id: str,
+	session_id: str,
+	qc_pipeline: str,
+	qc_task: str
+) -> None:
+	"""Display pagination controls in the left sidebar.
 	
-	# Save button
-	if st.button(MESSAGES['save_csv_button'], use_container_width=True, key="qc_save"):
+	Args:
+		current_page: Current page number
+		total_participants: Total number of participants
+		participant_id: Current participant ID
+		session_id: Current session ID
+		qc_pipeline: QC pipeline name
+		qc_task: QC task name
+	"""
+	st.markdown("#### 📄 Navigation")
+	st.write(f"**Participant {current_page} of {total_participants}**")
+	
+	pag_col1, pag_col2, pag_col3 = st.columns([1, 1, 1])
+	
+	with pag_col1:
+		if st.button(MESSAGES['previous_button'], use_container_width=True, key="pag_prev"):
+			SessionManager.previous_page()
+			st.rerun()
+	
+	with pag_col2:
+		if st.button(MESSAGES['confirm_next_button'], use_container_width=True, key="pag_confirm"):
+			SessionManager.next_page()
+			st.rerun()
+	
+	with pag_col3:
+		if st.button(MESSAGES['next_button'], use_container_width=True, key="pag_next"):
+			SessionManager.next_page()
+			st.rerun()
+	
+	st.divider()
+	
+	# Save QC results to CSV button
+	if st.button(MESSAGES['save_csv_button'], use_container_width=True, key="pag_save_csv"):
+		rating = st.session_state.get('qc_rating', QC_RATINGS[0])
+		notes = SessionManager.get_notes()
 		_save_qc_record(
 			participant_id=participant_id,
 			session_id=session_id,
@@ -229,6 +332,11 @@ def _display_qc_rating_form(
 			notes=notes,
 			total_participants=total_participants
 		)
+	
+	st.divider()
+	if st.button(MESSAGES['back_landing_button'], use_container_width=True, key="pag_landing"):
+		SessionManager.set_landing_page_complete(False)
+		st.rerun()
 
 
 def _display_iqm_panel() -> None:

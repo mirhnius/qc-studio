@@ -1,4 +1,4 @@
-"""Tests for layout.py module."""
+"""Tests for app.py module."""
 from pathlib import Path
 from unittest.mock import patch, MagicMock, call
 
@@ -14,11 +14,11 @@ sys.modules['niivue_component'] = MagicMock()
 class TestShowLandingPage:
     """Test landing page display functionality."""
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_landing_page_displays_title(self, mock_read_csv, mock_st):
         """Test that landing page displays correct title."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         # Mock the dataframe
         mock_df = pd.DataFrame({
@@ -42,11 +42,11 @@ class TestShowLandingPage:
         # Verify title was set
         mock_st.title.assert_called_once()
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_landing_page_displays_pipeline_info(self, mock_read_csv, mock_st):
         """Test that landing page displays pipeline information."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_df = pd.DataFrame({
             'participant_id': ['sub-ED01', 'sub-ED02']
@@ -68,11 +68,11 @@ class TestShowLandingPage:
         # Verify subheader was called with pipeline info
         mock_st.subheader.assert_called()
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_landing_page_error_handling(self, mock_read_csv, mock_st):
         """Test landing page error handling for invalid participant list."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_read_csv.side_effect = Exception("File not found")
         
@@ -91,11 +91,11 @@ class TestShowLandingPage:
         # Verify error message was displayed
         mock_st.error.assert_called()
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_landing_page_three_column_layout(self, mock_read_csv, mock_st):
         """Test that landing page creates three-column layout."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_df = pd.DataFrame({
             'participant_id': ['sub-ED01']
@@ -122,11 +122,11 @@ class TestShowLandingPage:
 class TestLandingPageRaterInfo:
     """Test rater information section of landing page."""
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_rater_form_displays(self, mock_read_csv, mock_st):
         """Test that rater form is displayed."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_df = pd.DataFrame({
             'participant_id': ['sub-ED01']
@@ -150,11 +150,11 @@ class TestLandingPageRaterInfo:
         # Form and input fields should be called
         mock_st.form.assert_called()
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_experience_level_options(self, mock_read_csv, mock_st):
         """Test that experience level options are presented."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_df = pd.DataFrame({
             'participant_id': ['sub-ED01']
@@ -177,11 +177,11 @@ class TestLandingPageRaterInfo:
 class TestLandingPagePanelSelection:
     """Test panel selection functionality."""
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_panel_checkboxes_displayed(self, mock_read_csv, mock_st):
         """Test that panel selection checkboxes are displayed."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_df = pd.DataFrame({
             'participant_id': ['sub-ED01']
@@ -224,11 +224,11 @@ class TestLandingPagePanelSelection:
 class TestLandingPageCsvUpload:
     """Test CSV file upload functionality."""
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_file_uploader_displayed(self, mock_read_csv, mock_st):
         """Test that file uploader is displayed."""
-        from layout import show_landing_page
+        from app import show_landing_page
         
         mock_df = pd.DataFrame({
             'participant_id': ['sub-ED01']
@@ -252,8 +252,8 @@ class TestLandingPageCsvUpload:
         # File uploader should be called
         mock_st.file_uploader.assert_called()
 
-    @patch('layout.st')
-    @patch('layout.pd.read_csv')
+    @patch('app.st')
+    @patch('app.pd.read_csv')
     def test_csv_upload_validation(self, mock_read_csv, mock_st, sample_qc_results_csv):
         """Test CSV upload validation."""
         # Read actual CSV for validation
@@ -268,11 +268,11 @@ class TestLandingPageCsvUpload:
 class TestApp:
     """Test main app function."""
 
-    @patch('layout.st')
-    @patch('layout.parse_qc_config')
+    @patch('app.st')
+    @patch('app.parse_qc_config')
     def test_app_landing_page_incomplete(self, mock_parse_config, mock_st):
         """Test app shows landing page when not complete."""
-        from layout import app
+        from app import app
         
         mock_session_state = MagicMock()
         mock_session_state.get = MagicMock(return_value=False)
@@ -300,11 +300,11 @@ class TestApp:
         
         mock_st.set_page_config.assert_called()
 
-    @patch('layout.st')
-    @patch('layout.parse_qc_config')
+    @patch('app.st')
+    @patch('app.parse_qc_config')
     def test_app_congratulations_page(self, mock_parse_config, mock_st):
         """Test app shows congratulations page when complete."""
-        from layout import app
+        from app import app
         
         mock_session_state = MagicMock()
         mock_session_state.get = MagicMock(return_value=True)
@@ -337,14 +337,14 @@ class TestApp:
 class TestQcViewerLayout:
     """Test QC viewer layout and panel display."""
 
-    @patch('layout.st')
-    @patch('layout.parse_qc_config')
-    @patch('layout.load_mri_data')
-    @patch('layout.load_svg_data')
+    @patch('app.st')
+    @patch('app.parse_qc_config')
+    @patch('app.load_mri_data')
+    @patch('app.load_svg_data')
     def test_niivue_panel_displayed(self, mock_load_svg, mock_load_mri, 
                                     mock_parse_config, mock_st):
         """Test that Niivue panel is displayed when selected."""
-        from layout import app
+        from app import app
         
         mock_st.session_state = {
             'landing_page_complete': True,
@@ -393,11 +393,11 @@ class TestSessionStateManagement:
 class TestNavigationControls:
     """Test navigation controls."""
 
-    @patch('layout.st')
-    @patch('layout.parse_qc_config')
+    @patch('app.st')
+    @patch('app.parse_qc_config')
     def test_previous_button_updates_page(self, mock_parse_config, mock_st):
         """Test that previous button updates current page."""
-        from layout import app
+        from app import app
         
         mock_st.session_state = {
             'landing_page_complete': True,

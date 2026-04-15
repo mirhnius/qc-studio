@@ -6,11 +6,11 @@ from constants import (
     MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES, SVG_HEIGHT,
     MIN_MONTAGE_GRID_SIZE, MAX_MONTAGE_GRID_SIZE
 )
-from session_manager import SessionManager
+from managers.session_manager import SessionManager
 from models import QCRecord
-from panel_layout_manager import PanelLayoutManager
-from niivue_viewer_manager import NiivueViewerManager
-from utils import load_svg_data
+from managers.panel_layout_manager import PanelLayoutManager
+from managers.niivue_viewer_manager import NiivueViewerManager
+from utils.data_loaders import load_svg_data
 
 
 def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
@@ -42,17 +42,17 @@ def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 	
 	# Left column: Rater Information
 	with col1:
-		_render_rater_form()
+		_display_rater_form()
 	
 	# Middle column: Panel Selection and Montage Settings
 	with col2:
 		selected_panels = PanelLayoutManager.render_panel_header_with_controls()
 		st.divider()
-		_render_montage_settings()
+		_display_montage_settings()
 	
 	# Right column: CSV Upload
 	with col3:
-		_render_csv_upload(participant_ids_in_ds, total_participants_in_ds)
+		_display_csv_upload(participant_ids_in_ds, total_participants_in_ds)
 	
 	st.markdown("---")
 	
@@ -60,7 +60,7 @@ def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 	_display_panel_layout_preview(selected_panels)
 
 
-def _render_rater_form() -> None:
+def _display_rater_form() -> None:
 	"""Render rater information form in the landing page."""
 	st.subheader(MESSAGES['rater_info_header'])
 	with st.form("rater_form"):
@@ -108,7 +108,7 @@ def _render_rater_form() -> None:
 				st.rerun()
 
 
-def _render_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: int) -> None:
+def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: int) -> None:
 	"""Render CSV upload section in the landing page.
 	
 	Args:
@@ -284,7 +284,7 @@ def _display_panel_layout_preview(selected_panels: dict) -> None:
 		st.info("📈 **QC Metrics**\n\nQC metrics will be displayed across the full width")
 
 
-def _render_montage_settings() -> None:
+def _display_montage_settings() -> None:
 	"""Render montage grid configuration settings.
 	
 	Allows users to specify maximum rows and columns for the SVG montage grid.

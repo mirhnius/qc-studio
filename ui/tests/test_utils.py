@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, patch, mock_open
 import pandas as pd
 import pytest
 
-from utils import (
-    parse_qc_config,
+from utils.config import parse_qc_config
+from utils.data_loaders import (
     load_mri_data,
     load_svg_data,
     load_iqm_data,
-    save_qc_results_to_csv
 )
+from utils.export import save_qc_results_to_csv
 
 
 class TestParseQcConfig:

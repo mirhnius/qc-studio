@@ -1,10 +1,11 @@
 """Pagination component."""
 import streamlit as st
+from datetime import datetime
 from constants import MESSAGES
-from session_manager import SessionManager
+from managers.session_manager import SessionManager
+from models import QCRecord
 
-
-def display_qc_rating_and_pagination(
+def display_pagination(
 	participant_id: str,
 	session_id: str,
 	qc_pipeline: str,

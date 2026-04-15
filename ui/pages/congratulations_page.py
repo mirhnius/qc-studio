@@ -2,8 +2,8 @@
 from pathlib import Path
 import streamlit as st
 from constants import MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES
-from session_manager import SessionManager
-from utils import save_qc_results_to_csv
+from managers.session_manager import SessionManager
+from utils.export import save_qc_results_to_csv
 from constants import QC_RATINGS
 
 def show_congratulations_page(qc_task: str, out_dir: str, total_participants: int, drop_duplicates: bool) -> None:

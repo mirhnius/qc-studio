@@ -1,7 +1,7 @@
 """Unit tests for NiivueViewerManager."""
 import pytest
 from unittest.mock import MagicMock, patch
-from niivue_viewer_manager import NiivueViewerConfig, NiivueViewerManager
+from managers.niivue_viewer_manager import NiivueViewerConfig, NiivueViewerManager
 from constants import VIEW_MODES, OVERLAY_COLORMAPS, DEFAULT_OVERLAY_OPACITY
 
 

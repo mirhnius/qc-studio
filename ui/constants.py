@@ -121,7 +121,7 @@ MESSAGES = {
     'confirm_next_button': 'Confirm ✅️ and Next ▶️',
     'next_button': 'Next ▶️',
     'back_landing_button': '🏠 Back to Landing Page',
-    'niivue_header': '3D MRI (Niivue)',
+    'niivue_header': '3D MRI\n(Niivue)',
     'niivue_controls_header': 'Niivue Controls',
     'svg_header': 'SVG Montage',
     'metrics_header': 'QC Metrics',

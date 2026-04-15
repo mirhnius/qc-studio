@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from layout import app
-
-import streamlit as st
+from app import app
+from managers.session_manager import SessionManager
+from constants import SESSION_KEYS
 
 def parse_args(args=None):
     parser = ArgumentParser("QC-Studio")
@@ -60,23 +60,6 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
-def init_session_state():
-    defaults = {
-        "current_page": 1,
-        "batch_size": 1,
-        "current_batch_qc": {},
-        "qc_records": [],
-        "rater_id": "",
-        "rater_experience": None,
-        "rater_fatigue": None,
-        "notes": "",
-    }
-    # Initialize defaults if not already set
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-
 def main():
     """Main entry point for the Streamlit app."""
     args = parse_args()
@@ -98,11 +81,11 @@ def main():
     total_participants = len(participant_ids)
 
     # Initialize session state
-    init_session_state()
+    SessionManager.init_session_state()
 
-    current_page = st.session_state['current_page']
+    current_page = st.session_state.get(SESSION_KEYS['current_page'], 1)
     if current_page < 1:
-        st.session_state['current_page'] = 1
+        st.session_state[SESSION_KEYS['current_page']] = 1
         current_page = 1
 
     if current_page > total_participants:
