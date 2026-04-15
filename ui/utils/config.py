@@ -18,7 +18,7 @@ def parse_qc_config(qc_json, qc_task, substitution_values) -> dict:
 	"""
 
 	qc_json_path = Path(qc_json) if qc_json else None
-	print(f"Parsing QC config: {qc_json_path}, task: {qc_task}")
+	# print(f"Parsing QC config: {qc_json_path}, task: {qc_task}")
 
 	try:
 		# Pydantic v2 deprecates `parse_file`; read file and validate JSON string.

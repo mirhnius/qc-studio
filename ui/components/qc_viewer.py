@@ -373,7 +373,6 @@ def _display_pagination_in_sidebar(
 			_record_qc_for_current_participant(
 				participant_id, session_id, qc_pipeline, qc_task, rating, notes
 			)
-			SessionManager.set_last_confirmed_page(current_page)
 			if SessionManager.is_autoplay_enabled():
 				# Start the countdown timer; autoplay logic advances the page when it expires
 				SessionManager.set_autoplay_start_time(time.time())

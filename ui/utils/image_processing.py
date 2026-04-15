@@ -114,7 +114,7 @@ def create_grid_montage(images, padding=10, bg_color=(255, 255, 255), max_rows=N
 	constraint_str = ""
 	if max_rows or max_cols:
 		constraint_str = f" (constraints: max_rows={max_rows}, max_cols={max_cols})"
-	print(f"Creating {rows}x{cols} grid montage for {num_images} images with aspect ratio {img_aspect_ratio:.2f} (montage ratio diff: {best_ratio_diff:.3f}){constraint_str}")
+	# print(f"Creating {rows}x{cols} grid montage for {num_images} images with aspect ratio {img_aspect_ratio:.2f} (montage ratio diff: {best_ratio_diff:.3f}){constraint_str}")
 	
 	# Resize all images to uniform size
 	resized_images = []

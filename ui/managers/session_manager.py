@@ -22,8 +22,6 @@ class SessionManager:
             SESSION_KEYS['montage_max_rows']: DEFAULT_MONTAGE_MAX_ROWS,
             SESSION_KEYS['montage_max_cols']: DEFAULT_MONTAGE_MAX_COLS,
             'autoplay_enabled': False,
-            'last_confirmed_page': 0,
-            'autoplay_countdown': 0,
             'autoplay_start_time': 0.0,
             'autoplay_duration': 5
         }
@@ -225,35 +223,6 @@ class SessionManager:
     def set_autoplay_enabled(enabled: bool):
         """Set autoplay state."""
         st.session_state['autoplay_enabled'] = enabled
-    
-    @staticmethod
-    def get_last_confirmed_page() -> int:
-        """Get the last page where user confirmed (clicked Confirm & Next)."""
-        return st.session_state.get('last_confirmed_page', 0)
-    
-    @staticmethod
-    def set_last_confirmed_page(page: int):
-        """Set the last page where user confirmed."""
-        st.session_state['last_confirmed_page'] = page
-    
-    # Autoplay Countdown Methods
-    @staticmethod
-    def get_autoplay_countdown() -> int:
-        """Get current autoplay countdown in seconds."""
-        return st.session_state.get('autoplay_countdown', 0)
-    
-    @staticmethod
-    def set_autoplay_countdown(seconds: int):
-        """Set autoplay countdown (in seconds)."""
-        st.session_state['autoplay_countdown'] = max(0, seconds)
-    
-    @staticmethod
-    def decrement_autoplay_countdown() -> int:
-        """Decrement countdown by 1 second and return the new value."""
-        current = SessionManager.get_autoplay_countdown()
-        new_value = max(0, current - 1)
-        SessionManager.set_autoplay_countdown(new_value)
-        return new_value
 
     @staticmethod
     def get_autoplay_start_time() -> float:

@@ -10,7 +10,6 @@ from managers.session_manager import SessionManager
 from models import QCRecord
 from managers.panel_layout_manager import PanelLayoutManager
 from managers.niivue_viewer_manager import NiivueViewerManager
-from utils.data_loaders import load_svg_data
 
 
 def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:

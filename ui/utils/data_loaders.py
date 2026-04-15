@@ -177,26 +177,6 @@ def load_svg_data(dataset_dir, path_dict: dict, max_montage_rows=None, max_monta
 	return image_data_dict
 
 
-def load_iqm_data(dataset_dir, path_dict: dict) -> Optional[dict]:
-	"""Load IQM JSON file content as dict.
-	
-	Args:
-		dataset_dir: Root directory containing the dataset
-		path_dict: Dictionary with key 'iqm_path'
-	
-	Returns:
-		dict: Parsed JSON content if file exists and is valid, None otherwise
-	"""
-	iqm_path = Path(dataset_dir).joinpath(path_dict.get("iqm_path"))
-	if iqm_path and iqm_path.is_file():
-		try:
-			with open(iqm_path, "r") as f:
-				return json.load(f)
-		except Exception:
-			return None
-	return None
-
-
 def _load_image_from_file(file_path, dpi=96):
 	"""Load image from file path, supporting both raster and SVG formats.
 	

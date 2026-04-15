@@ -1,21 +1,8 @@
-from pathlib import Path
-import pandas as pd
 import streamlit as st
-from niivue_component import niivue_viewer
 from utils.config import parse_qc_config
-from utils.data_loaders import load_svg_data
-from utils.export import save_qc_results_to_csv
-from models import QCRecord
-from constants import (
-    EXPERIENCE_LEVELS, FATIGUE_LEVELS, DEFAULT_PANELS, PANEL_CONFIG,
-    QC_RATINGS, DEFAULT_QC_RATING, NIIVUE_HEIGHT, SVG_HEIGHT, VIEW_MODES,
-    OVERLAY_COLORMAPS, DEFAULT_OVERLAY_OPACITY, EQUAL_RATIO,
-    RATING_IQM_RATIO, RATER_INFO_RATIO, UPLOAD_FILE_TYPES, MESSAGES, ERROR_MESSAGES,
-    SUCCESS_MESSAGES, INFO_MESSAGES, SUBSTITUTIONS_DICT
-)
+from constants import MESSAGES
 from managers.session_manager import SessionManager
-from managers.niivue_viewer_manager import NiivueViewerManager, NiivueViewerConfig
-from managers.panel_layout_manager import PanelLayoutManager
+from managers.niivue_viewer_manager import NiivueViewerManager
 from pages.landing_page import show_landing_page
 from pages.congratulations_page import show_congratulations_page
 from components.qc_viewer import display_qc_viewers
