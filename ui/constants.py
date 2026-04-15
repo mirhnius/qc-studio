@@ -50,7 +50,7 @@ SVG_HEIGHT = 600
 IQM_HEIGHT = 400
 DEFAULT_VIEW_MODE = "multiplanar"
 VIEW_MODES = ["multiplanar", "axial", "coronal", "sagittal", "3d"]
-OVERLAY_COLORMAPS = ["grey", "cool", "warm"]
+OVERLAY_COLORMAPS = ["cool", "warm"]
 DEFAULT_OVERLAY_OPACITY = 0.5
 
 # Column layout ratios

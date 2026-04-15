@@ -65,15 +65,29 @@ class NiivueViewerManager:
     def render_controls_panel() -> NiivueViewerConfig:
         """Render Niivue controls panel and return configuration.
         
+        Updates session state with new config when user changes settings.
+        
         Returns:
             NiivueViewerConfig object with user selections
         """
         st.header(MESSAGES['niivue_controls_header'])
         
+        # Get current config from session state for initial values
+        current_config = st.session_state.get('niivue_config', None)
+        
+        # Overlay toggle - at the top for easy access
+        show_overlay = st.checkbox(
+            MESSAGES['show_overlay_label'], 
+            value=current_config.show_overlay if current_config else False
+        )
+        
+        st.divider()
+        
         # View mode selection
         view_mode = st.selectbox(
             MESSAGES['view_mode_label'],
             VIEW_MODES,
+            index=VIEW_MODES.index(current_config.view_mode) if current_config else 0,
             help="Select the viewing perspective"
         )
         
@@ -81,56 +95,65 @@ class NiivueViewerManager:
         overlay_colormap = st.selectbox(
             MESSAGES['overlay_colormap_label'],
             OVERLAY_COLORMAPS,
+            index=OVERLAY_COLORMAPS.index(current_config.overlay_colormap) if current_config else 0,
             help="Select the colormap for the overlay"
         )
         
-        st.divider()
-        st.subheader(MESSAGES['display_settings_header'])
-        
-        # Display settings checkboxes
-        show_crosshair = st.checkbox(MESSAGES['crosshair_label'], value=False)
-        radiological = st.checkbox(MESSAGES['radiological_label'], value=False)
-        show_colorbar = st.checkbox(MESSAGES['colorbar_label'], value=True)
-        interpolation = st.checkbox(MESSAGES['interpolation_label'], value=True)
-        
-        # Overlay toggle
-        show_overlay = st.checkbox(MESSAGES['show_overlay_label'], value=False)
-        
-        return NiivueViewerConfig(
+        # Create new config with updated values
+        new_config = NiivueViewerConfig(
             view_mode=view_mode,
             overlay_colormap=overlay_colormap,
-            show_crosshair=show_crosshair,
-            radiological=radiological,
-            show_colorbar=show_colorbar,
-            interpolation=interpolation,
+            show_crosshair=current_config.show_crosshair if current_config else False,
+            radiological=current_config.radiological if current_config else False,
+            show_colorbar=current_config.show_colorbar if current_config else True,
+            interpolation=current_config.interpolation if current_config else True,
             show_overlay=show_overlay
         )
+        
+        # Save updated config to session state so render_viewer uses it on next rerun
+        st.session_state.niivue_config = new_config
+        
+        return new_config
     
     @staticmethod
     def build_overlay_list(mri_data: dict, config: NiivueViewerConfig) -> list:
         """Build overlay configuration list based on settings.
+        
+        NOTE: Overlays are ONLY included when the "Show overlay image" checkbox
+        is checked in the NiiVue controls panel (config.show_overlay is True).
         
         Args:
             mri_data: MRI data dictionary from load_mri_data()
             config: NiivueViewerConfig with overlay settings
             
         Returns:
-            List of overlay configurations (empty if no overlay)
+            List of overlay configurations for niivue_viewer
+            Empty list if "Show overlay image" is unchecked or no overlay data available
         """
-        if not config.show_overlay or "overlay_mri_image_bytes" not in mri_data:
-            return []
+        overlays = []
         
-        return [{
-            "data": mri_data["overlay_mri_image_bytes"],
-            "name": "overlay",
-            "colormap": config.overlay_colormap,
-            "opacity": DEFAULT_OVERLAY_OPACITY,
-        }]
+        # Only add overlay if checkbox is checked AND overlay data exists
+        if config.show_overlay and "overlay_mri_image_bytes" in mri_data:
+            overlay_path = mri_data.get("overlay_mri_image_path")
+            overlay_name = str(overlay_path.name) if overlay_path else "overlay.nii.gz"
+            
+            overlays.append({
+                "data": mri_data["overlay_mri_image_bytes"],
+                "name": overlay_name,
+                "colormap": config.overlay_colormap,
+                "opacity": DEFAULT_OVERLAY_OPACITY,
+            })
+        
+        return overlays
     
     @staticmethod
     def build_viewer_kwargs(mri_data: dict, config: NiivueViewerConfig, 
                            participant_id: str = None, session_id: str = None) -> dict:
         """Build kwargs dictionary for niivue_viewer component.
+        
+        The overlays parameter is always included in the returned kwargs.
+        However, overlays will only be displayed in the viewer when the
+        "Show overlay image" checkbox is checked in the NiiVue controls panel.
         
         Args:
             mri_data: MRI data dictionary from load_mri_data()
@@ -139,27 +162,30 @@ class NiivueViewerManager:
             session_id: Current session ID for unique key generation
             
         Returns:
-            Dictionary of kwargs for niivue_viewer()
+            Dictionary of kwargs for niivue_viewer() with overlays support
+            Overlays list will be empty if checkbox is unchecked
         """
         base_mri_image_bytes = mri_data.get("base_mri_image_bytes")
         base_mri_image_path = mri_data.get("base_mri_image_path")
         
         base_mri_name = str(base_mri_image_path.name) if base_mri_image_path else "base_mri.nii"
         settings = config.to_settings_dict()
+        # Build overlays list - will be empty if show_overlay checkbox is unchecked
         overlays = NiivueViewerManager.build_overlay_list(mri_data, config)
         
+        # Build viewer kwargs following niivue_viewer API
         viewer_kwargs = {
             "nifti_data": base_mri_image_bytes,
             "filename": base_mri_name,
             "height": NIIVUE_HEIGHT,
             "key": config.get_viewer_key(participant_id, session_id),
             "view_mode": config.view_mode,
-            "settings": settings,
             "styled": True,
+            "settings": settings,
         }
         
-        if overlays:
-            viewer_kwargs["overlays"] = overlays
+        # Always include overlays parameter (may be empty list if checkbox unchecked)
+        viewer_kwargs["overlays"] = overlays
         
         return viewer_kwargs
     

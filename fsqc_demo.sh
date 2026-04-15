@@ -1,6 +1,6 @@
 pipeline_script="ui/main.py"
 qc_pipeline="fsqc"
-qc_task="FS_volume_wf_qc"
+qc_task="FS_left_hippocampus_wf_qc"
 qc_json="../pipelines/fsqc/qc.json"
 dataset_dir="sample_data"
 participant_list="sample_data/qc_participants.tsv"

@@ -9,7 +9,7 @@
         "iqm_path": ""        
     },
     "FS_surface_wf_qc": {
-        "base_mri_image_path": "",
+        "base_mri_image_path": "derivatives/freesurfer/7.3.2/output/[[NIPOPPY_BIDS_SESSION_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/mri/aparc+aseg.mgz",
         "overlay_mri_image_path": "",
         "svg_montage_path": [
             "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/surfaces/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/lh.inflated.left.png",
@@ -32,18 +32,25 @@
         "iqm_path": ""        
     },
     "FS_hypothalamus_wf_qc": {
-        "base_mri_image_path": "",
-        "overlay_mri_image_path": "",
+        "base_mri_image_path": "derivatives/freesurfer/7.3.2/output/[[NIPOPPY_BIDS_SESSION_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/mri/aparc+aseg.mgz",
+        "overlay_mri_image_path": "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hypothalamus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hypothalamus.mgz",
         "svg_montage_path": [
             "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hypothalamus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hypothalamus.png"
         ],
         "iqm_path": ""        
     },
-    "FS_hippocampus_wf_qc": {   
-        "base_mri_image_path": "",
-        "overlay_mri_image_path": "",
+    "FS_left_hippocampus_wf_qc": {   
+        "base_mri_image_path": "derivatives/freesurfer/7.3.2/output/[[NIPOPPY_BIDS_SESSION_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/mri/aparc+aseg.mgz",
+        "overlay_mri_image_path": "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hippocampus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hippocampus-lh.mgz",
         "svg_montage_path": [
-            "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hippocampus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hippocampus-left.png",
+            "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hippocampus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hippocampus-left.png"
+        ],
+        "iqm_path": ""        
+    },
+    "FS_right_hippocampus_wf_qc": {   
+        "base_mri_image_path": "derivatives/freesurfer/7.3.2/output/[[NIPOPPY_BIDS_SESSION_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/mri/aparc+aseg.mgz",
+        "overlay_mri_image_path": "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hippocampus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hippocampus-rh.mgz",
+        "svg_montage_path": [
             "derivatives/fsqc/2.1.4/output/[[NIPOPPY_BIDS_SESSION_ID]]/hippocampus/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/hippocampus-right.png"
         ],
         "iqm_path": ""        

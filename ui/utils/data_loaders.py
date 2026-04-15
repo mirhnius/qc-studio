@@ -17,7 +17,8 @@ def load_mri_data(dataset_dir, path_dict: dict) -> dict:
 		path_dict: Dictionary with keys 'base_mri_image_path' and 'overlay_mri_image_path'
 	
 	Returns:
-		dict with keys 'base_mri_image_bytes', 'base_mri_image_path', 'overlay_mri_image_bytes'
+		dict with keys: 'base_mri_image_bytes', 'base_mri_image_path', 
+		'overlay_mri_image_bytes', 'overlay_mri_image_path'
 		Returns empty dict if files don't exist
 	"""
 	base_mri_path = Path(dataset_dir).joinpath(path_dict.get("base_mri_image_path"))
@@ -32,6 +33,7 @@ def load_mri_data(dataset_dir, path_dict: dict) -> dict:
 
 	if overlay_mri_path and Path(overlay_mri_path).is_file():
 		file_bytes_dict["overlay_mri_image_bytes"] = Path(overlay_mri_path).read_bytes()
+		file_bytes_dict["overlay_mri_image_path"] = overlay_mri_path
 
 	return file_bytes_dict
 
