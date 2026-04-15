@@ -1,6 +1,6 @@
 # QC-Studio MVP Scope
 
-## Desgin Overview
+## Design Overview
 ![overview](assets/nipoppy-qc-studio_overview.jpg)
 
 
@@ -30,32 +30,32 @@
 
 ## Tasks
 - Configs
-    - Generate `pipeline_qc.json` (see [sample_qc.json](./ui/sample_qc.json))
+    - Generate `pipeline_qc.json` (see [sample_qc.json](../pipelines/sample_qc.json))
 
-- UI-orchestrator (see [ui.py](./ui/ui.py))
-    - Handle argparse
+- UI-orchestrator (see [app.py](../ui/app.py))
+    - Handle argparse ([main.py](../ui/main.py))
     - Web-app init / global parameters
     - Calls to data handler
-    - Calls to layout
+    - Calls to layout managers
 
 - UI-data-handler 
-    - Write Pydantic json parser (see [models.py](./ui/models.py))
-    - Write data loaders (see [utils.py](./ui/utils.py))
-        - MRI
-        - SVGs
-        - TSVs (IQMs)
-    - Handle chunking for pagination (TODO)
+    - Write Pydantic json parser (see [models/qc_models.py](../ui/models/qc_models.py))
+    - Write data loaders (see [utils/](../ui/utils/))
+        - MRI ([data_loaders.py](../ui/utils/data_loaders.py))
+        - SVGs ([image_processing.py](../ui/utils/image_processing.py))
+        - TSVs/configs ([config.py](../ui/utils/config.py))
+    - Handle chunking for pagination ([panel_layout_manager.py](../ui/managers/panel_layout_manager.py))
         - n_subjects per page 
         - n_QC tasks per page 
 
-- UI-layout (see [layout.py](./ui/layout.py))
-    - Overall layout manager → handle 4 display panels 
-    - Niivue streamlit plug-in to support base + overlay images 
-    - SVG panel 
+- UI-layout (see [managers/](../ui/managers/))
+    - Overall layout manager → [panel_layout_manager.py](../ui/managers/panel_layout_manager.py)
+    - Niivue streamlit integration →  [niivue_viewer_manager.py](../ui/managers/niivue_viewer_manager.py)
+    - SVG panel → [qc_viewer.py](../ui/components/qc_viewer.py)
     - IQM panel (optional for MVP)
-    - Rating panel 
+    - Rating panel ([pagination.py](../ui/components/pagination.py))
 
-- Write <rater>_qc_scores.tsv (see [layout.py](./ui/layout.py))
+- Write <rater>_qc_scores.tsv (see [utils/export.py](../ui/utils/export.py))
      - Handle overwrite / append  
 
 

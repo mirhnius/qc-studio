@@ -6,11 +6,13 @@ Use this checklist to verify all components of the test suite have been created.
 
 ### Test Files (ui/tests/)
 - [x] `__init__.py` - Package marker
-- [x] `conftest.py` - Pytest fixtures and configuration (10+ fixtures)
+- [x] `conftest.py` - Pytest fixtures and configuration (15+ fixtures)
 - [x] `test_models.py` - 22 tests for Pydantic models
 - [x] `test_utils.py` - 22 tests for utility functions
-- [x] `test_ui.py` - 11 tests for UI module
-- [x] `test_layout.py` - 20 tests for layout module
+- [x] `test_constants.py` - 25 tests for constants and configuration
+- [x] `test_session_manager.py` - 25 tests for SessionManager
+- [x] `test_panel_layout_manager.py` - 20 tests for PanelLayoutManager
+- [x] `test_niivue_viewer_manager.py` - 19 tests for NiivueViewerManager
 - [x] `pytest.ini` - Pytest configuration
 - [x] `README.md` - Comprehensive test documentation
 
@@ -30,14 +32,16 @@ Use this checklist to verify all components of the test suite have been created.
 
 | Category | Count |
 |----------|-------|
-| **Total Tests** | ~75+ |
+| **Total Tests** | ~130+ |
 | **test_models.py** | 22 |
 | **test_utils.py** | 22 |
-| **test_ui.py** | 11 |
-| **test_layout.py** | 20 |
-| **Available Fixtures** | 10+ |
-| **Test Lines of Code** | 1000+ |
-| **Documentation Lines** | 50+ |
+| **test_constants.py** | 25 |
+| **test_session_manager.py** | 25 |
+| **test_panel_layout_manager.py** | 20 |
+| **test_niivue_viewer_manager.py** | 19 |
+| **Available Fixtures** | 15+ |
+| **Test Lines of Code** | 1500+ |
+| **Documentation Lines** | 60+ |
 
 ## 🚀 Getting Started
 
@@ -77,8 +81,10 @@ python show_test_summary.py
 ### Test Coverage
 - [x] Models module (Pydantic validation and serialization)
 - [x] Utils module (File I/O and parsing functions)
-- [x] UI module (Argument parsing and session management)
-- [x] Layout module (Streamlit components and workflows)
+- [x] Constants module (Configuration validation)
+- [x] SessionManager (Session state management)
+- [x] PanelLayoutManager (Layout computation)
+- [x] NiivueViewerManager (Viewer configuration)
 
 ### Testing Capabilities
 - [x] Pydantic model validation
@@ -150,14 +156,20 @@ qc-studio/
 │   │   ├── conftest.py
 │   │   ├── test_models.py (22 tests)
 │   │   ├── test_utils.py (22 tests)
-│   │   ├── test_ui.py (11 tests)
-│   │   ├── test_layout.py (20 tests)
+│   │   ├── test_constants.py (25 tests)
+│   │   ├── test_session_manager.py (25 tests)
+│   │   ├── test_panel_layout_manager.py (20 tests)
+│   │   ├── test_niivue_viewer_manager.py (19 tests)
 │   │   ├── pytest.ini
 │   │   └── README.md
-│   ├── models.py
-│   ├── utils.py
-│   ├── ui.py
-│   └── layout.py
+│   ├── app.py
+│   ├── main.py
+│   ├── constants.py
+│   ├── pages/
+│   ├── components/
+│   ├── managers/
+│   ├── models/
+│   └── utils/
 ├── requirements-test.txt
 ├── run_tests.sh
 ├── verify_tests.py

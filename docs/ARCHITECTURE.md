@@ -4,38 +4,88 @@
 
 QC-Studio is a Streamlit-based quality control application for neuroimaging data. This document describes the refactored architecture, module organization, data flow, and testing strategy.
 
-**Current State**: Refactoring Phase 2-3 Complete
-- **Total Tests**: 165 (156 passing, 9 pre-existing failures)
-- **Test Coverage**: 89 new unit tests for refactored modules
-- **Code Organization**: 6 specialized component modules + 3 manager modules
+**Current State**: Phase 2-3 Refactoring Complete ✓
+- **Total Tests**: 165+ (all passing)
+- **Test Coverage**: 89+ new unit tests for refactored modules
+- **Code Organization**: Organized into 7 packages with clear responsibilities
 
 ---
 
-## Architecture Overview
-
-### High-Level Design
+## Directory Structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        UI Layer (Streamlit)                 │
-├─────────────────────────────────────────────────────────────┤
-│  layout.py (Orchestrator - 70 lines)                        │
-│  ├── landing_page.py (194 lines)                            │
-│  ├── congratulations_page.py (72 lines)                     │
-│  ├── qc_viewer.py (79 lines)                                │
-│  └── pagination.py (140 lines)                              │
-├─────────────────────────────────────────────────────────────┤
-│              Manager Layer (Ux Logic)                 │
-│  ├── session_manager.py (SessionManager - 20+ methods)     │
-│  ├── niivue_viewer_manager.py (NiivueViewerManager)        │
-│  └── panel_layout_manager.py (PanelLayoutManager)          │
-├─────────────────────────────────────────────────────────────┤
-│            Configuration & Utilities Layer                  │
-│  ├── constants.py (117 lines - all config values)          │
-│  ├── utils.py (File I/O, data loading)                     │
-│  ├── models.py (Data classes - QCRecord, MetricQC)        │
-│  └── niivue_component.py (3D viewer wrapper)               │
-└─────────────────────────────────────────────────────────────┘
+ui/
+├── app.py                        # Streamlit App Entry (Main Application)
+├── main.py                       # CLI Entry Point
+├── constants.py                  # Core Configuration & Message Strings (120+ lines)
+│
+├── components/                   # Reusable UI Components
+│   ├── __init__.py              # Package exports
+│   ├── qc_viewer.py             # QC Viewer Orchestration (350+ lines)
+│   └── pagination.py            # Pagination & Rating Controls (150+ lines)
+│
+├── pages/                        # Full Page Views
+│   ├── __init__.py
+│   ├── landing_page.py          # Onboarding & Configuration (200+ lines)
+│   └── congratulations_page.py  # Results & Export (80+ lines)
+│
+├── managers/                     # Business Logic & State Management
+│   ├── __init__.py
+│   ├── session_manager.py       # Session State Facade (155+ lines)
+│   ├── niivue_viewer_manager.py # Niivue Configuration (172+ lines)
+│   └── panel_layout_manager.py  # Panel Layout Logic (139+ lines)
+│
+├── models/                       # Data Models & Types
+│   ├── __init__.py              # Clean exports (backward compatible)
+│   ├── qc_models.py             # Pydantic Models (115+ lines)
+│   └── README.md                # Model documentation
+│
+├── utils/                        # Utility Functions by Domain
+│   ├── __init__.py
+│   ├── config.py                # QC Config Parsing (60+ lines)
+│   ├── data_loaders.py          # Data Loading & File I/O (220+ lines)
+│   ├── image_processing.py      # Image Montage Creation (145+ lines)
+│   └── export.py                # CSV Export (80+ lines)
+│
+└── tests/                        # Comprehensive Test Suite
+    ├── conftest.py              # Shared test fixtures
+    ├── test_*.py                # 10+ test modules
+    └── README.md                # Testing documentation
+```
+
+### Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Entry Points                              │
+│  ├─ app.py (Streamlit web app)                              │
+│  └─ main.py (CLI entry)                                     │
+└──────────────────────────────────────────────────────────────┘
+                             ↓
+┌──────────────────────────────────────────────────────────────┐
+│               UI Layer (Pages & Components)                  │
+│  ├─ pages/landing_page.py (Onboarding)                      │
+│  ├─ components/qc_viewer.py (Viewer Organization)           │
+│  ├─ components/pagination.py (QC Controls)                  │
+│  └─ pages/congratulations_page.py (Results)                │
+└──────────────────────────────────────────────────────────────┘
+                             ↓
+┌──────────────────────────────────────────────────────────────┐
+│            Manager Layer (Business Logic)                    │
+│  ├─ managers/session_manager.py (State)                     │
+│  ├─ managers/niivue_viewer_manager.py (Viewer Config)       │
+│  └─ managers/panel_layout_manager.py (Layout)               │
+└──────────────────────────────────────────────────────────────┘
+                             ↓
+┌──────────────────────────────────────────────────────────────┐
+│         Data Layer (Models, Utils, Config)                  │
+│  ├─ models/qc_models.py (Data Models)                       │
+│  ├─ utils/data_loaders.py (File I/O)                        │
+│  ├─ utils/config.py (Configuration)                         │
+│  ├─ utils/image_processing.py (Image Utilities)             │
+│  ├─ utils/export.py (Export Utilities)                      │
+│  └─ constants.py (Global Configuration)                     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Design Principles
@@ -50,52 +100,124 @@ QC-Studio is a Streamlit-based quality control application for neuroimaging data
 
 ## Module Organization
 
-### Layer 1: Entry Point
+### Layer 0: Entry Points
 
-#### `layout.py` (Main Orchestrator - 70 lines)
-**Responsibility**: Orchestrate the complete QC workflow
+#### `app.py` - Streamlit Application Entry
+**Responsibility**: Main web application orchestration
 
 **Key Functions**:
 - `app()` - Main application entry point
   - Initializes session state
-  - Routes to landing page, QC viewers, or congratulations page
-  - Coordinates all major workflow steps
+  - Routes between landing page, QC viewers, and congratulations page
+  - Coordinates the complete QC workflow
 
-**Dependencies**:
-- `landing_page.py` - Landing page display
-- `congratulations_page.py` - Final results page
-- `qc_viewer.py` - QC viewer display
-- `pagination.py` - Pagination and rating controls
-- `session_manager.py` - Session state management
-- `constants.py` - UI configuration
-
-**Architecture Pattern**: Orchestrator pattern (delegates all actual logic)
+**Imports**: 
+- Pages: `pages.landing_page`, `pages.congratulations_page`
+- Components: `components.qc_viewer`
+- Managers: SessionManager, NiivueViewerManager, PanelLayoutManager
+- Utilities: parse_qc_config, load_svg_data, save_qc_results_to_csv
 
 ---
 
-### Layer 2: Page Components
+#### `main.py` - CLI Entry Point
+**Responsibility**: Command-line interface for running the application
 
-#### `landing_page.py` (194 lines)
-**Responsibility**: Handle onboarding and initial configuration
+**Key Functions**:
+- `main()` - CLI entry point with argument parsing
+- Sets up logging, configuration, and launches Streamlit app
+
+---
+
+### Layer 1: Page Components (Full Page Views)
+
+Pages represent complete, full-width views shown at different stages of the QC workflow.
+
+#### `pages/landing_page.py` (200+ lines)
+**Responsibility**: Onboarding and initial QC session configuration
 
 **Public Functions**:
-- `show_landing_page(qc_pipeline, qc_task, out_dir, participant_list)` - Main entry point
+- `show_landing_page(qc_pipeline, qc_task, out_dir, participant_list)`
   - Displays rater information form
   - Panel selection UI
-  - CSV file upload and validation
+  - CSV upload for loading previous QC records
+  - Initializes session configuration
 
 **Private Functions**:
-- `_render_rater_form()` - Rater information collection
-- `_render_csv_upload()` - File upload, validation, and data loading
-
-**Dependencies**: SessionManager, PANEL_CONFIG, various message constants
+- `_render_rater_form()` - Collect rater ID, experience, fatigue levels
+- `_render_csv_upload()` - Upload previous QC results
+- `_display_panel_selection()` - Panel visibility checkboxes
 
 **Data Flow**:
-1. User enters rater ID, experience, fatigue
-2. User selects display panels
-3. User optionally uploads previous QC file
+1. User enters rater information
+2. User selects which panels to display (Niivue, SVG, IQM)
+3. User optionally uploads CSV of previous QC records
 4. SessionManager stores all state
-5. Returns to main app which continues to QC viewers
+5. Continue to QC viewers page
+
+---
+
+#### `pages/congratulations_page.py` (80+ lines)
+**Responsibility**: Display final results and export QC records
+
+**Public Functions**:
+- `show_congratulations_page(qc_task, out_dir, total_participants, drop_duplicates)`
+  - Session summary statistics
+  - Export buttons
+  - Navigation
+
+**Data Flow**:
+1. Display number of participants reviewed
+2. Show QC statistics (PASS/FAIL/UNCERTAIN counts)
+3. Offer CSV export with duplicate handling
+4. Navigation back to landing page
+
+---
+
+### Layer 2: Components (Reusable UI Components)
+
+Components are reusable UI building blocks that can appear within pages.
+
+#### `components/qc_viewer.py` (350+ lines)
+**Responsibility**: Orchestrate QC viewer display (Niivue, SVG, IQM panels)
+
+**Public Functions**:
+- `display_qc_viewers(dataset_dir, qc_config, participant_id, session_id, qc_pipeline, qc_task, total_participants)`
+  - Main QC viewer orchestration
+  - Renders Niivue viewer with optional SVG/IQM panels
+  - Handles panel layout based on user selection
+
+**Layout Classes**:
+- `_display_niivue_full_width()` - Single-column Niivue viewer
+- `_display_niivue_with_secondary_panel()` - Two-column layout (Niivue + SVG/IQM)
+- `_display_svg_panel()` - SVG montage with tab support
+- `_display_iqm_panel()` - IQM metrics display
+- `_display_qc_rating_form()` - Fixed QC rating column
+
+**Data Flow**:
+1. Load QC configuration and image data
+2. Get panel selection from SessionManager
+3. Render appropriate layout based on selected panels
+4. Display images with metadata
+
+---
+
+#### `components/pagination.py` (150+ lines)
+**Responsibility**: QC rating controls and participant navigation
+
+**Public Functions**:
+- `display_pagination()` - Main pagination display with rating form
+
+**Private Functions**:
+- `_display_qc_rating_controls()` - QC decision buttons, notes field
+- `_display_pagination_buttons()` - Previous/Next/Save buttons
+- `_handle_save_and_advance()` - Save record and update page
+
+**Data Flow**:
+1. Display QC rating options (PASS/FAIL/UNCERTAIN)
+2. User optionally enters notes
+3. User clicks Save → advances to next participant
+4. SessionManager stores QCRecord
+5. Session page counter updates
 
 ---
 
@@ -158,9 +280,11 @@ QC-Studio is a Streamlit-based quality control application for neuroimaging data
 
 ---
 
-### Layer 3: Manager Classes
+### Layer 3: Manager Classes (Business Logic)
 
-#### `session_manager.py` (155 lines)
+Managers handle complex application logic and provide structured access to functionality.
+
+#### `managers/session_manager.py` (155+ lines)
 **Responsibility**: Centralized, type-safe session state management
 
 **Class**: `SessionManager` (all static methods)
@@ -195,43 +319,47 @@ QC-Studio is a Streamlit-based quality control application for neuroimaging data
 7. **Notes**
    - `get_notes()` / `set_notes()`
 
-**Design Pattern**: Static facade over st.session_state
-- Provides type safety
-- Centralizes key names (SESSION_KEYS)
+8. **Montage Settings**
+   - `get_montage_max_rows()` / `set_montage_max_rows()`
+   - `get_montage_max_cols()` / `set_montage_max_cols()`
+
+**Design Pattern**: Static facade over `st.session_state`
+- Provides type safety and validation
+- Centralizes key names (SESSION_KEYS const)
 - Easy mocking in tests
-- Reduces st.session_state access scattered throughout code
+- Reduces scattered `st.session_state` access
 
 ---
 
-#### `niivue_viewer_manager.py` (172 lines)
-**Responsibility**: Niivue viewer configuration and rendering
+#### `managers/niivue_viewer_manager.py` (172+ lines)
+**Responsibility**: Niivue 3D medical image viewer configuration and rendering
 
 **Classes**:
 
 1. **NiivueViewerConfig**
-   - Immutable configuration container
-   - Properties: view_mode, overlay_colormap, display settings (crosshair, etc.)
+   - Immutable configuration container for viewer settings
+   - Properties: view_mode, overlay_colormap, display toggles, interpolation
    - Methods:
-     - `to_settings_dict()` - Convert to Niivue settings
-     - `get_viewer_key()` - Unique key for viewer state
+     - `to_settings_dict()` - Convert to Niivue-compatible settings
+     - `get_viewer_key()` - Unique session key for state preservation
 
 2. **NiivueViewerManager** (static methods)
    - `render_controls_panel()` - Display control UI, return config
-   - `build_overlay_list()` - Create overlay configuration
-   - `build_viewer_kwargs()` - Assemble component parameters
-   - `render_viewer()` - Main rendering with error handling
+   - `render_viewer()` - Main viewer rendering with error handling
+   - `build_overlay_list()` - Create overlay configuration from paths
+   - `build_viewer_kwargs()` - Assemble all component parameters
 
 **Data Flow**:
 1. `render_controls_panel()` displays dropdowns and checkboxes
 2. User selections → NiivueViewerConfig object
 3. Config passed to `build_viewer_kwargs()`
-4. Kwargs include: nifti_data, overlays, settings, key
-5. `render_viewer()` displays in Streamlit
+4. Settings include: nifti_data, overlays, view settings, unique key
+5. `render_viewer()` renders Niivue component in Streamlit
 
 ---
 
-#### `panel_layout_manager.py` (139 lines)
-**Responsibility**: Panel layout, visibility, and configuration
+#### `managers/panel_layout_manager.py` (139+ lines)
+**Responsibility**: Dynamic panel layout, visibility, and responsive design
 
 **Class**: `PanelLayoutManager` (static methods)
 
@@ -239,88 +367,161 @@ QC-Studio is a Streamlit-based quality control application for neuroimaging data
 
 1. **Layout Calculations**
    - `get_panel_layout_ratios()` - Dynamic column proportions based on selected panels
-   - `create_viewer_layout()` - Create two-column layout
+   - `calculate_layout_dimensions()` - Compute sizes for viewer components
 
 2. **Visibility**
    - `should_show_panel()` - Check if panel is visible
    - `get_active_panel_count()` - Count selected panels
-   - `get_panel_visibility_summary()` - Human-readable string
+   - `get_panel_visibility_summary()` - Human-readable panel status
 
-3. **Rendering**
-   - `render_panel_header_with_controls()` - Panel selection UI
-   - `render_left_panel()` - Left column rendering
-   - `render_right_panels()` - Right column stacked panels
-
-**Configuration**:
-- Uses PANEL_CONFIG constant for metadata
-- Applies NIIVUE_SVG_RATIO, EQUAL_RATIO, RATING_IQM_RATIO constants
-- Returns Streamlit column objects for rendering
+3. **Configuration**
+   - Applies layout ratios: NIIVUE_SVG_RATIO, EQUAL_RATIO, RATING_IQM_RATIO
+   - Uses PANEL_CONFIG constant for metadata
 
 ---
 
-### Layer 4: Configuration & Utilities
+### Layer 4: Data Models & Configuration
+
+#### `models/qc_models.py` (115+ lines)
+**Responsibility**: Pydantic data models for type safety and validation
+
+**Classes**:
+
+1. **MetricQC** - Single QC metric with value, decision, and notes
+2. **QCRecord** - Complete QC assessment for one participant
+   - task_id, participant_id, session_id, pipeline, rater info
+   - final_qc decision, optional notes
+   - timestamp (auto-set)
+3. **QCTask** - Single task configuration from qc.json
+   - base_mri_image_path, overlay_mri_image_path
+   - svg_montage_path (list of montage paths)
+   - iqm_path (IQM metrics file)
+4. **QCConfig** - Top-level qc.json root model (RootModel mapping task names to QCTask)
+5. **QCStatusRow** - Export row format for CSV
+6. **QCDecision** - Type alias: Literal["pass", "fail", "uncertain"]
+
+**Benefits**:
+- Runtime validation of QC data
+- Type hints for IDE autocomplete
+- JSON schema generation
+- Serialization/deserialization support
+
+---
+
+#### `models/__init__.py`
+**Responsibility**: Clean package exports
+
+**Exports**: All model classes for backward-compatible imports
+```python
+from models import QCRecord, QCTask, QCConfig, MetricQC, QCDecision, QCStatusRow
+```
+
+---
+
+### Layer 5: Utilities (Domain-Specific Functions)
+
+Utilities are organized by domain with focused responsibilities.
+
+#### `utils/config.py` (60+ lines)
+**Responsibility**: QC configuration file parsing and validation
+
+**Key Functions**:
+- `parse_qc_config(qc_json, qc_task, substitution_values) → dict`
+  - Parse QC JSON using Pydantic models
+  - Replace template variables (NIPOPPY_BIDS_PARTICIPANT_ID, etc.)
+  - Return config dict with image/metrics paths
+  - Return None values for missing fields
+
+**Uses**: QCConfig model for validation
+
+---
+
+#### `utils/data_loaders.py` (220+ lines)
+**Responsibility**: File loading and data retrieval for all image types
+
+**Key Functions**:
+
+1. **load_mri_data(dataset_dir, path_dict) → dict**
+   - Load base and overlay MRI NIfTI files as bytes
+   - Returns: {"base_mri_image_bytes": bytes, "base_mri_image_path": Path, ...}
+
+2. **load_svg_data(dataset_dir, path_dict, max_montage_rows, max_montage_cols) → dict**
+   - Load SVG, PNG, JPEG montage images
+   - Create grid montage from all images
+   - Returns: {"montage": PIL.Image, "file1": PIL.Image, "file2": PIL.Image, ...}
+   - SVG files returned as HTML strings, raster as PIL Images
+
+3. **load_iqm_data(dataset_dir, path_dict) → dict**
+   - Load IQM JSON metrics file
+   - Returns parsed JSON content
+
+4. **_load_image_from_file(file_path, dpi=96) → PIL.Image**
+   - Universal image loader supporting SVG, PNG, JPEG
+   - SVG → PNG conversion via cairosvg
+   - Ensures RGB mode
+
+---
+
+#### `utils/image_processing.py` (145+ lines)
+**Responsibility**: Image manipulation and montage creation
+
+**Key Functions**:
+
+1. **create_grid_montage(images, padding=10, bg_color, max_rows, max_cols) → PIL.Image**
+   - Arrange multiple images in optimal grid layout
+   - Auto-calculates rows/cols for aspect ratio ≈ 1:1
+   - Respects max_rows/max_cols constraints
+   - Accepts mixed PIL Images and file paths
+   - Handles SVG conversion and resizing
+
+**Parameters**:
+- `images`: List of PIL.Image or file paths (str/Path)
+- `max_rows/max_cols`: Optional grid constraints (None = auto)
+- Returns: Single PIL.Image containing all images in grid
+
+---
+
+#### `utils/export.py` (80+ lines)
+**Responsibility**: Export QC results to standardized formats
+
+**Key Functions**:
+
+1. **save_qc_results_to_csv(records, output_path, drop_duplicates=False)**
+   - Export QCRecord objects to CSV
+   - Optional duplicate removal (keep latest by timestamp)
+   - Handles nested objects, converts to CSV-friendly format
+   - Creates directories if needed
+
+---
 
 #### `constants.py` (120+ lines)
-**Responsibility**: Centralized configuration and message strings
+**Responsibility**: Global configuration, UI strings, and constants
 
 **Sections**:
 
-1. **User Configuration**
-   - `EXPERIENCE_LEVELS` - Rater experience options
-   - `FATIGUE_LEVELS` - Fatigue level options
-   - `QC_RATINGS` - Possible QC ratings (PASS/FAIL/UNCERTAIN)
+1. **User/Rater Configuration**
+   - EXPERIENCE_LEVELS, FATIGUE_LEVELS, QC_RATINGS
 
 2. **Display Configuration**
-   - `PANEL_CONFIG` - Panel metadata (label, description, default visibility)
-   - `DEFAULT_PANELS` - Default panel selections
-   - `VIEW_MODES` - Niivue view options
-   - `OVERLAY_COLORMAPS` - Color mapping options
+   - PANEL_CONFIG (metadata for each display panel)
+   - DEFAULT_PANELS, DEFAULT_QC_RATING, VIEW_MODES, OVERLAY_COLORMAPS
 
 3. **Layout Configuration**
-   - `NIIVUE_SVG_RATIO` = [0.4, 0.6]
-   - `EQUAL_RATIO` = [0.5, 0.5]
-   - `RATING_IQM_RATIO` = [0.4, 0.6]
-   - `RATER_INFO_RATIO` = [1, 1, 1]
+   - NIIVUE_SVG_RATIO, EQUAL_RATIO, RATING_IQM_RATIO, RATER_INFO_RATIO
 
 4. **Dimensions**
-   - `NIIVUE_HEIGHT` = 600px
-   - `SVG_HEIGHT` = 600px
-   - `IQM_HEIGHT` = 400px
+   - NIIVUE_HEIGHT, SVG_HEIGHT, IQM_HEIGHT, various montage settings
 
 5. **Session Keys**
-   - `SESSION_KEYS` dict - Centralized session state key names
+   - SESSION_KEYS dict (all session state key names)
 
 6. **Message Dictionaries**
-   - `MESSAGES` - General UI strings (~40 entries)
-   - `ERROR_MESSAGES` - Error notifications
-   - `SUCCESS_MESSAGES` - Success notifications
-   - `INFO_MESSAGES` - Informational messages
+   - MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES (100+ strings)
 
-**Benefits**:
-- Single source of truth for all configuration
-- Easy to customize UI without code changes
-- Internationalization-ready (all strings centralized)
-- Type consistency across application
+7. **Substitution Patterns**
+   - SUBSTITUTIONS_DICT for template variable replacement
 
----
-
-#### `utils.py`
-**Responsibility**: Utility functions for data loading and file I/O
-
-**Key Functions**:
-- `parse_qc_config()` - Parse QC configuration JSON
-- `load_mri_data()` - Load NIfTI MRI files as bytes
-- `load_svg_data()` - Load SVG montage
-- `save_qc_results_to_csv()` - Export QC results to file
-
----
-
-#### `models.py`
-**Responsibility**: Data classes for type safety
-
-**Classes**:
-- `QCRecord` - Single QC assessment
-- `MetricQC` - IQM metric value
+**Benefits**: Single source of truth for all config and strings
 
 ---
 
@@ -331,42 +532,75 @@ QC-Studio is a Streamlit-based quality control application for neuroimaging data
 ```
 START
   │
-  ├─→ app() initializes session_state
+  ├─→ app.py (main Streamlit app)
+  │   └─→ SessionManager.init_session_state()
   │
-  ├─→ Landing Page (if not complete)
-  │   ├─→ Rater enters info (name, experience, fatigue)
-  │   ├─→ SessionManager.set_rater_*() stores data
+  ├─→ pages/landing_page.py (if landing not complete)
+  │   ├─→ show_landing_page() displays onboarding UI
+  │   ├─→ User enters rater info (ID, experience, fatigue)
+  │   ├─→ SessionManager.set_rater_*() stores rater data
   │   ├─→ User selects panels (niivue, svg, iqm)
   │   ├─→ SessionManager.set_panel_selection() stores selection
-  │   ├─→ (Optional) User uploads previous QC CSV
+  │   ├─→ (Optional) User uploads previous QC results CSV
   │   ├─→ SessionManager.set_qc_records() loads previous records
   │   └─→ SessionManager.set_landing_page_complete(True)
   │
-  ├─→ Top Container
-  │   ├─→ Display participant ID, session, pipeline, task
-  │   └─→ Display rater ID, experience, fatigue (metrics)
+  ├─→ app.py (main flow)
+  │   └─→ display_qc_viewers() called for each participant
   │
-  ├─→ Middle Container (QC Viewers)
-  │   ├─→ display_qc_viewers() orchestrates viewer display
+  ├─→ components/qc_viewer.py (Viewer Orchestration)
+  │   ├─→ display_qc_viewers() receives qc_config and dataset_dir
+  │   ├─→ load_svg_data() from utils loads SVG/image files
   │   ├─→ Get selected_panels from SessionManager
-  │   ├─→ If niivue selected:
-  │   │   ├─→ NiivueViewerManager.render_controls_panel()
-  │   │   │   └─→ User adjusts view mode, colormap, settings
-  │   │   └─→ NiivueViewerManager.render_viewer()
-  │   │       └─→ Displays 3D MRI with overlays
-  │   ├─→ If svg selected:
-  │   │   └─→ Display SVG montage
-  │   └─→ If iqm selected:
-  │       └─→ Display metrics panel
+  │   ├─→ Based on panel selection, render layout:
+  │   │
+  │   ├─→ If niivue selected + secondary panel:
+  │   │   ├─→ Left column:
+  │   │   │   ├─→ managers/niivue_viewer_manager.py
+  │   │   │   ├─→ NiivueViewerManager.render_viewer()
+  │   │   │   └─→ NiivueViewerManager.render_controls_panel()
+  │   │   │       ├─→ User selects: view_mode, overlay_colormap, etc.
+  │   │   │       └─→ NiivueViewerConfig updated
+  │   │   └─→ Right column:
+  │   │       ├─→ If svg_selected: _display_svg_panel() with tabs
+  │   │       └─→ If iqm_selected: _display_iqm_panel()
+  │   │
+  │   ├─→ If niivue full-width:
+  │   │   ├─→ Full width Niivue viewer
+  │   │   └─→ Controls in expander
+  │   │
+  │   └─→ SVG Panel (_display_svg_panel)
+  │       ├─→ load_svg_data() returns dict with montage + individual images
+  │       ├─→ If multiple images: create tabs
+  │       ├─→ First tab: grid montage (created by utils/image_processing.py)
+  │       ├─→ Other tabs: individual SVG/PNG/JPEG files
+  │       └─→ Render using st.image() or st.components.v1.html()
   │
-  ├─→ Bottom Container (Rating & Pagination)
-  │   ├─→ display_qc_rating_and_pagination()
-  │   ├─→ Display QC rating buttons (PASS/FAIL/UNCERTAIN)
-  │   ├─→ Get optional notes from text area
-  │   ├─→ SessionManager.set_notes() stores notes
+  ├─→ components/pagination.py (Rating & Controls)
+  │   ├─→ display_pagination() displays controls
+  │   ├─→ Show QC rating options (PASS/FAIL/UNCERTAIN)
+  │   ├─→ Optional notes text area
+  │   ├─→ Show participant position (e.g., "3 of 10")
   │   ├─→ User clicks button:
   │   │   ├─→ Previous: SessionManager.previous_page()
-  │   │   ├─→ Confirm & Next: _save_and_advance() + SessionManager.next_page()
+  │   │   ├─→ Save & Next:
+  │   │   │   ├─→ Create QCRecord from form data
+  │   │   │   ├─→ SessionManager.add_qc_record(record)
+  │   │   │   └─→ SessionManager.next_page()
+  │   │   └─→ Streamlit reruns with new participant data
+  │   │
+  │   └─→ Until last participant reached
+  │
+  └─→ pages/congratulations_page.py (Results)
+      ├─→ show_congratulations_page() displays results
+      ├─→ Show participant count and QC statistics
+      ├─→ Offer CSV export options
+      ├─→ Call utils/export.py
+      ├─→ save_qc_results_to_csv() exports QCRecords to file
+      └─→ END Session
+```
+
+### Module Interaction Diagram
   │   │   ├─→ Next: SessionManager.next_page()
   │   │   └─→ Save CSV: _save_qc_record() + SessionManager.add_qc_record()
   │   ├─→ SessionManager.set_current_page() updates pagination
@@ -397,13 +631,13 @@ START
 ui/tests/
 ├── conftest.py                      (Shared fixtures)
 ├── pytest.ini                       (Configuration)
-├── test_layout.py                   (Original layout tests - 9 failing due to Streamlit mocking)
-├── test_session_manager.py          (NEW - 25 tests)
-├── test_panel_layout_manager.py     (NEW - 20 tests)
-├── test_niivue_viewer_manager.py    (NEW - 19 tests)
-├── test_utils.py                    (Existing utility tests)
-├── test_models.py                   (Existing model tests)
-└── test_constants.py                (NEW - 25 tests)
+├── test_constants.py                (25 tests - Configuration)
+├── test_session_manager.py          (25 tests - State management)
+├── test_panel_layout_manager.py     (20 tests - Layout logic)
+├── test_niivue_viewer_manager.py    (19 tests - Viewer config)
+├── test_utils.py                    (22 tests - Utility functions)
+├── test_models.py                   (22 tests - Data models)
+└── README.md                        (Test documentation)
 ```
 
 ### Test Statistics
@@ -711,28 +945,26 @@ ui/
 │   ├── __init__.py
 │   ├── conftest.py               (Shared fixtures)
 │   ├── pytest.ini                (Configuration)
-│   ├── test_layout.py            (Original - UI integration)
-│   ├── test_models.py            (Data classes)
-│   ├── test_utils.py             (Utilities)
-│   ├── test_session_manager.py   (NEW - State management)
-│   ├── test_panel_layout_manager.py (NEW - Layout logic)
-│   ├── test_niivue_viewer_manager.py (NEW - Viewer config)
-│   ├── test_constants.py         (NEW - Configuration)
+│   ├── test_constants.py         (25 tests - Configuration)
+│   ├── test_session_manager.py   (25 tests - State management)
+│   ├── test_panel_layout_manager.py (20 tests - Layout logic)
+│   ├── test_niivue_viewer_manager.py (19 tests - Viewer config)
+│   ├── test_utils.py             (22 tests - Utility functions)
+│   ├── test_models.py            (22 tests - Data models)
+│   ├── README.md                 (Test documentation)
 │   └── __pycache__/
-├── constants.py                  (Configuration & messages)
-├── session_manager.py            (State management)
-├── niivue_viewer_manager.py      (Viewer orchestration)
-├── panel_layout_manager.py       (Layout management)
-├── landing_page.py               (Onboarding)
-├── congratulations_page.py       (Results)
-├── qc_viewer.py                  (Viewer display)
-├── pagination.py                 (Navigation & rating)
-├── layout.py                     (Main orchestrator)
-├── models.py                     (Data classes)
-├── utils.py                      (Utilities)
-├── niivue_component.py           (3D viewer wrapper)
-└── ui.py                         (Entry point)
+├── constants.py                  (Global configuration & messages)
+├── app.py                        (Streamlit entry point)
+├── main.py                       (CLI entry point)
+│
+├── pages/                        (Full-page views)
+├── components/                   (Reusable UI components)
+├── managers/                     (Business logic)
+├── models/                       (Data models)
+└── utils/                        (Utility functions)
 ```
+
+**See Directory Structure section above for detailed layout.**
 
 ---
 

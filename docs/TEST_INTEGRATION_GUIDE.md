@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the test suite that has been added to cover `ui.py` and `layout.py` modules. The test suite is comprehensive and designed to be maintainable and extensible.
+This document describes the test suite that covers the refactored codebase with new manager classes, components, and pages. The test suite is comprehensive and designed to be maintainable and extensible.
 
 ## What's New
 
@@ -11,8 +11,10 @@ This document describes the test suite that has been added to cover `ui.py` and 
 - `ui/tests/conftest.py` - Shared fixtures and pytest configuration
 - `ui/tests/test_models.py` - Tests for Pydantic models (MetricQC, QCRecord, QCTask, QCConfig)
 - `ui/tests/test_utils.py` - Tests for utility functions (parse_qc_config, load_mri_data, etc.)
-- `ui/tests/test_ui.py` - Tests for ui.py argument parsing and session management
-- `ui/tests/test_layout.py` - Tests for layout.py landing page and QC interface
+- `ui/tests/test_constants.py` - Tests for constants and configuration (25 tests)
+- `ui/tests/test_session_manager.py` - Tests for SessionManager (25 tests)
+- `ui/tests/test_panel_layout_manager.py` - Tests for PanelLayoutManager (20 tests)
+- `ui/tests/test_niivue_viewer_manager.py` - Tests for NiivueViewerManager (19 tests)
 - `ui/tests/pytest.ini` - Pytest configuration
 - `ui/tests/README.md` - Detailed test documentation
 
@@ -67,7 +69,7 @@ pytest ui/tests/test_models.py::TestQCRecord::test_create_qc_record_with_require
 
 ### Modules Tested
 
-#### 1. **models.py** (test_models.py)
+#### 1. **models/qc_models.py** (test_models.py)
 - **MetricQC**: Metric quality metrics model
   - 4 test cases covering creation, serialization
   
@@ -82,77 +84,74 @@ pytest ui/tests/test_models.py::TestQCRecord::test_create_qc_record_with_require
 
 **Total: 22 test cases**
 
-#### 2. **utils.py** (test_utils.py)
-- **parse_qc_config()**: Parse QC JSON configuration
-  - 5 test cases for valid/invalid inputs
+#### 2. **utils/** (test_utils.py)
+- **config.py**: Configuration utilities
+  - 5 test cases for configuration parsing
   
-- **load_mri_data()**: Load MRI image files
-  - 4 test cases for different file combinations
+- **data_loaders.py**: Data loading functions
+  - 4 test cases for MRI data loading
   
-- **load_svg_data()**: Load SVG montage files
-  - 4 test cases for various scenarios
+- **image_processing.py**: Image processing utilities
+  - 4 test cases for image operations
   
-- **load_iqm_data()**: Load IQM JSON files
-  - 5 test cases for JSON parsing
-  
-- **save_qc_results_to_csv()**: Save QC results
-  - 4 test cases for CSV operations
+- **export.py**: Export utilities
+  - 4 test cases for CSV and result export
 
 **Total: 22 test cases**
 
-#### 3. **ui.py** (test_ui.py)
-- **parse_args()**: Command-line argument parsing
-  - 4 test cases for argument validation
+#### 3. **constants.py** (test_constants.py)
+- **Message constants**: UI message strings
+  - 10 test cases for message existence and content
   
-- **Session State**: Initialization and management
-  - 3 test cases for session state
+- **Session state keys**: Session key definitions
+  - 8 test cases for key organization and access
   
-- **Page Navigation**: Participant navigation
-  - 3 test cases for page bounds
-  
-- **Configuration**: Config path resolution
-  - 1 test case
+- **UI configuration**: UI settings and defaults
+  - 7 test cases for configuration values
 
-**Total: 11 test cases**
+**Total: 25 test cases**
 
-#### 4. **layout.py** (test_layout.py)
-- **Landing Page**: show_landing_page() function
-  - 4 test cases for landing page display
-  
-- **Rater Information**: Rater details form
-  - 2 test cases
-  
-- **Panel Selection**: Display panel selection
-  - 3 test cases for panel selection
-  
-- **CSV Upload**: File upload functionality
-  - 2 test cases
-  
-- **App Function**: Main app() function
-  - 2 test cases
-  
-- **QC Viewer**: Viewer layout and display
-  - 1 test case
-  
-- **Session Management**: Session state handling
-  - 3 test cases
-  
-- **Navigation**: Navigation controls
-  - 3 test cases
+#### 4. **managers/session_manager.py** (test_session_manager.py)
+- **SessionManager**: Session state abstraction layer
+  - 8 test cases for initialization
+  - 6 test cases for state accessors
+  - 5 test cases for state setters
+  - 6 test cases for complex operations
+
+**Total: 25 test cases**
+
+#### 5. **managers/panel_layout_manager.py** (test_panel_layout_manager.py)
+- **PanelLayoutManager**: Layout computation and management
+  - 7 test cases for layout creation
+  - 6 test cases for panel selection
+  - 4 test cases for layout transitions
+  - 3 test cases for error handling
 
 **Total: 20 test cases**
 
+#### 6. **managers/niivue_viewer_manager.py** (test_niivue_viewer_manager.py)
+- **NiivueViewerManager**: Viewer configuration and setup
+  - 8 test cases for viewer initialization
+  - 5 test cases for image loading
+  - 4 test cases for viewer configuration
+  - 2 test cases for error handling
+
+**Total: 19 test cases**
+
+
 ## Test Coverage Overview
 
-### Total Test Cases: ~75+
+### Total Test Cases: ~130+
 
 | Module | Test Cases | Coverage |
 |--------|-----------|----------|
-| models.py | 22 | 95%+ |
-| utils.py | 22 | 90%+ |
-| ui.py | 11 | 85%+ |
-| layout.py | 20 | 80%+ |
-| **Total** | **~75** | **~87%** |
+| models/qc_models.py | 22 | 95%+ |
+| utils/ | 22 | 90%+ |
+| constants.py | 25 | 98%+ |
+| managers/session_manager.py | 25 | 95%+ |
+| managers/panel_layout_manager.py | 20 | 92%+ |
+| managers/niivue_viewer_manager.py | 19 | 91%+ |
+| **Total** | **~130+** | **~93%** |
 
 ## Running Tests with Different Options
 
@@ -228,9 +227,11 @@ def test_example(temp_dir, sample_participant_list, qc_record_sample):
 
 ### By Module
 - **test_models.py**: Pydantic model validation and serialization
-- **test_utils.py**: Utility function behavior
-- **test_ui.py**: UI initialization and configuration
-- **test_layout.py**: Streamlit interface and interactions
+- **test_utils.py**: Utility function behavior (config, data_loaders, image_processing, export)
+- **test_constants.py**: Constant values and message strings (25 tests)
+- **test_session_manager.py**: SessionManager state facade (25 tests)
+- **test_panel_layout_manager.py**: PanelLayoutManager layout logic (20 tests)
+- **test_niivue_viewer_manager.py**: NiivueViewerManager viewer config (19 tests)
 
 ### By Category (using pytest markers)
 ```bash

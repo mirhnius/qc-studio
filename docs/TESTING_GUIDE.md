@@ -281,7 +281,7 @@ mock_function.side_effect = lambda x: x * 2  # Dynamic behavior
 
 ```
 test_<module>.py  →  test_session_manager.py
-                      test_layout.py
+                      test_panel_layout_manager.py
                       test_models.py
 ```
 

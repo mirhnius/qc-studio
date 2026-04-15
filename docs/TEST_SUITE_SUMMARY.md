@@ -2,7 +2,7 @@
 
 ## Overview
 
-A comprehensive test suite has been successfully added to the QC-Studio project to cover `ui.py` and `layout.py` modules. The test suite includes ~75+ test cases with multiple layers of coverage.
+A comprehensive test suite covering 130+ tests has been successfully added to the QC-Studio project to cover the refactored codebase including managers, components, pages, models, and utilities.
 
 ## What Was Created
 
@@ -10,11 +10,13 @@ A comprehensive test suite has been successfully added to the QC-Studio project 
 1. **ui/tests/__init__.py** - Test package marker
 2. **ui/tests/conftest.py** - Shared pytest fixtures and configuration
 3. **ui/tests/test_models.py** - 22 tests for Pydantic models
-4. **ui/tests/test_utils.py** - 22 tests for utility functions  
-5. **ui/tests/test_ui.py** - 11 tests for ui.py module
-6. **ui/tests/test_layout.py** - 20 tests for layout.py module
-7. **ui/tests/pytest.ini** - Pytest configuration
-8. **ui/tests/README.md** - Detailed test documentation
+4. **ui/tests/test_utils.py** - 22 tests for utility functions
+5. **ui/tests/test_constants.py** - 25 tests for constants and configuration
+6. **ui/tests/test_session_manager.py** - 25 tests for SessionManager
+7. **ui/tests/test_panel_layout_manager.py** - 20 tests for PanelLayoutManager
+8. **ui/tests/test_niivue_viewer_manager.py** - 19 tests for NiivueViewerManager
+9. **ui/tests/pytest.ini** - Pytest configuration
+10. **ui/tests/README.md** - Detailed test documentation
 
 ### Configuration Files
 - **requirements-test.txt** - Test dependencies
@@ -26,11 +28,13 @@ A comprehensive test suite has been successfully added to the QC-Studio project 
 
 | Module | Tests | Focus |
 |--------|-------|-------|
-| models.py | 22 | Pydantic model validation, serialization |
-| utils.py | 22 | File I/O, config parsing, data loading |
-| ui.py | 11 | Argument parsing, session management |
-| layout.py | 20 | Streamlit UI components, workflows |
-| **Total** | **~75** | **Comprehensive coverage** |
+| models/qc_models.py | 22 | Pydantic model validation, serialization |
+| utils/ | 22 | File I/O, config parsing, data loading |
+| constants.py | 25 | Configuration validation, consistency |
+| managers/session_manager.py | 25 | Session state management |
+| managers/panel_layout_manager.py | 20 | Layout logic and computation |
+| managers/niivue_viewer_manager.py | 19 | Viewer configuration |
+| **Total** | **~130+** | **Comprehensive coverage** |
 
 ## Key Features
 
@@ -39,11 +43,13 @@ A comprehensive test suite has been successfully added to the QC-Studio project 
 - Sample data files (TSV, JSON, CSV)
 - Mock Streamlit session state
 - Pre-configured test objects
+- Manager and component fixtures
 
-### Streamlit Testing
-- Mocked Streamlit session state and UI components
-- Support for testing UI logic without running the server
-- Fixtures for common UI patterns
+### Manager Testing
+- SessionManager state management and transitions
+- PanelLayoutManager layout computation and panel selection
+- NiivueViewerManager viewer configuration and image loading
+- Isolated manager testing with mocked dependencies
 
 ### File Operations Testing  
 - Safe temporary file creation/deletion
@@ -92,17 +98,23 @@ qc-studio/
 ├── ui/
 │   ├── tests/
 │   │   ├── __init__.py
-│   │   ├── conftest.py              # Fixtures and pytest hooks
-│   │   ├── test_models.py           # Model tests (22 tests)
-│   │   ├── test_utils.py            # Utility tests (22 tests)
-│   │   ├── test_ui.py               # UI tests (11 tests)
-│   │   ├── test_layout.py           # Layout tests (20 tests)
-│   │   ├── pytest.ini               # Pytest config
-│   │   └── README.md                # Test documentation
-│   ├── models.py
-│   ├── utils.py
-│   ├── ui.py
-│   ├── layout.py
+│   │   ├── conftest.py                   # Fixtures and pytest hooks
+│   │   ├── test_models.py                # Model tests (22 tests)
+│   │   ├── test_utils.py                 # Utility tests (22 tests)
+│   │   ├── test_constants.py             # Constants tests (25 tests)
+│   │   ├── test_session_manager.py       # SessionManager tests (25 tests)
+│   │   ├── test_panel_layout_manager.py  # Layout tests (20 tests)
+│   │   ├── test_niivue_viewer_manager.py # Viewer tests (19 tests)
+│   │   ├── pytest.ini                    # Pytest config
+│   │   └── README.md                     # Test documentation
+│   ├── constants.py
+│   ├── app.py
+│   ├── main.py
+│   ├── pages/
+│   ├── components/
+│   ├── managers/
+│   ├── models/
+│   ├── utils/
 │   └── ... (other UI files)
 ├── requirements-test.txt
 ├── run_tests.sh
@@ -135,17 +147,14 @@ def test_parse_valid_qc_config(self, sample_qc_config):
     assert result["base_mri_image_path"] is not None
 ```
 
-### Testing UI
+### Testing Manager
 ```python
-# From test_ui.py
-def test_parse_args_with_required_arguments(self):
-    from ui import parse_args
-    args = parse_args([
-        '--participant_list', '/path/to/participants.tsv',
-        '--qc_pipeline', 'fmriprep',
-        # ... other required args
-    ])
-    assert args.participant_list == '/path/to/participants.tsv'
+# From test_session_manager.py
+def test_session_manager_init_creates_defaults(self, mock_session_state):
+    manager = SessionManager()
+    manager.init_session_state()
+    assert st.session_state.get(SESSION_KEYS['current_participant']) == 0
+    assert st.session_state.get(SESSION_KEYS['qc_records']) == []
 ```
 
 ## Running Specific Tests
@@ -252,11 +261,11 @@ jobs:
 
 ## Statistics
 
-- **Total tests**: ~75+
-- **Test files**: 4 main + setup files
-- **Fixtures**: 10+ reusable fixtures
-- **Lines of test code**: 1000+
-- **Modules covered**: 4 (models, utils, ui, layout)
+- **Total tests**: ~130+
+- **Test files**: 8 main + setup files
+- **Fixtures**: 15+ reusable fixtures
+- **Lines of test code**: 1500+
+- **Modules covered**: Managers, Components, Pages, Models, Utils
 - **Supported Python versions**: 3.8+
 
 ---

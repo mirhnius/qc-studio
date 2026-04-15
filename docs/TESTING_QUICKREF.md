@@ -56,9 +56,11 @@ chmod +x run_tests.sh                     # Make executable (one-time)
 |------|-------|-------|------|
 | test_models.py | 22 | Pydantic models | ~1s |
 | test_utils.py | 22 | File I/O & parsing | ~2s |
-| test_ui.py | 11 | UI setup & args | ~1s |
-| test_layout.py | 20 | Streamlit components | ~1s |
-| **Total** | **~75** | **Full coverage** | **~5s** |
+| test_constants.py | 25 | Constants & config | ~1s |
+| test_session_manager.py | 25 | Session state | ~2s |
+| test_panel_layout_manager.py | 20 | Layout management | ~1s |
+| test_niivue_viewer_manager.py | 19 | Viewer config | ~1s |
+| **Total** | **~130+** | **Full coverage** | **~8-10s** |
 
 ## Available Fixtures
 
@@ -181,13 +183,15 @@ pytest ui/tests/test_file.py::TestClass::test_new_feature -v
 qc-studio/
 ├── ui/
 │   ├── tests/
-│   │   ├── conftest.py          ← Fixtures defined here
-│   │   ├── test_models.py       ← Model tests
-│   │   ├── test_utils.py        ← Utility tests
-│   │   ├── test_ui.py           ← UI tests
-│   │   ├── test_layout.py       ← Layout tests
-│   │   ├── pytest.ini           ← Config
-│   │   └── README.md            ← Full docs
+│   │   ├── conftest.py                   ← Fixtures defined here
+│   │   ├── test_models.py                ← Model tests (22)
+│   │   ├── test_utils.py                 ← Utility tests (22)
+│   │   ├── test_constants.py             ← Constants tests (25)
+│   │   ├── test_session_manager.py       ← Session tests (25)
+│   │   ├── test_panel_layout_manager.py  ← Layout tests (20)
+│   │   ├── test_niivue_viewer_manager.py ← Viewer tests (19)
+│   │   ├── pytest.ini                    ← Config
+│   │   └── README.md                     ← Full docs
 │   └── ... (modules being tested)
 ├── requirements-test.txt        ← Dependencies
 ├── run_tests.sh                 ← Test runner

@@ -20,16 +20,14 @@ Quick lookup for common development tasks, commands, and troubleshooting.
 # All tests
 bash run_tests.sh all
 
-# Only new unit tests
+# Only new manager tests
 pytest ui/tests/test_session_manager.py \
         ui/tests/test_panel_layout_manager.py \
         ui/tests/test_niivue_viewer_manager.py \
         ui/tests/test_constants.py -v
 
-# Only existing tests
-pytest ui/tests/test_layout.py \
-       ui/tests/test_models.py \
-       ui/tests/test_ui.py \
+# Only model and utility tests
+pytest ui/tests/test_models.py \
        ui/tests/test_utils.py -v
 
 # With coverage report
@@ -137,7 +135,7 @@ pytest ui/tests/test_constants.py::TestNewConstant -v
 
 ### Task: Modify SessionManager
 
-**File**: [session_manager.py](ui/session_manager.py)
+**File**: [ui/managers/session_manager.py](ui/managers/session_manager.py)
 
 ```python
 # 1. Add new method
@@ -162,18 +160,18 @@ pytest ui/tests/test_session_manager.py::TestMyNewMethods -v
 
 ### Task: Update UI Component
 
-**File**: [landing_page.py](ui/landing_page.py), [qc_viewer.py](ui/qc_viewer.py), etc.
+**File**: [ui/pages/landing_page.py](ui/pages/landing_page.py), [ui/components/qc_viewer.py](ui/components/qc_viewer.py), etc.
 
 ```python
 # 1. Make changes
-# 2. Run UI tests
-pytest ui/tests/test_ui.py -v -s
+# 2. Run component tests
+pytest ui/tests/ -v -s
 
 # 3. Run full test suite
 bash run_tests.sh all
 
 # 4. Manually verify in Streamlit
-streamlit run ui/ui.py
+streamlit run ui/app.py
 ```
 
 ### Task: Fix Failing Test
@@ -283,76 +281,93 @@ def resource():
 
 ```
 ui/
-├── constants.py              # Configuration & constants (120 lines)
-├── session_manager.py        # Session state abstraction (155 lines)
-├── niivue_viewer_manager.py  # Viewer initialization (172 lines)
-├── panel_layout_manager.py   # Layout computation (139 lines)
-├── layout.py                 # Main orchestrator (70 lines)
-├── models.py                 # Data models
-├── utils.py                  # Utilities
-├── ui.py                     # Streamlit app entry
-├── landing_page.py           # Landing page component (194 lines)
-├── congratulations_page.py   # Results page component (72 lines)
-├── qc_viewer.py              # QC viewer component (79 lines)
-├── pagination.py             # Pagination component (140 lines)
+├── app.py                          # Streamlit entry point
+├── main.py                         # CLI entry point
+├── constants.py                    # Configuration & constants
+├── pages/
+│   ├── landing_page.py             # Onboarding page (194 lines)
+│   └── congratulations_page.py     # Results page (72 lines)
+├── components/
+│   ├── qc_viewer.py                # QC viewer orchestration (79 lines)
+│   └── pagination.py               # Pagination controls (140 lines)
+├── managers/
+│   ├── session_manager.py          # Session state facade (155 lines)
+│   ├── niivue_viewer_manager.py    # Viewer configuration (172 lines)
+│   └── panel_layout_manager.py     # Layout management (139 lines)
+├── models/
+│   ├── __init__.py                 # Package exports
+│   └── qc_models.py                # Pydantic models
+├── utils/
+│   ├── __init__.py                 # Package exports
+│   ├── config.py                   # Configuration parsing
+│   ├── data_loaders.py             # File I/O and loading
+│   ├── image_processing.py         # Image utilities
+│   └── export.py                   # Export utilities
 └── tests/
-    ├── conftest.py                    # Test fixtures
-    ├── test_constants.py              # Constants tests (25 tests)
-    ├── test_session_manager.py        # SessionManager tests (25 tests)
-    ├── test_panel_layout_manager.py   # PanelLayoutManager tests (20 tests)
-    ├── test_niivue_viewer_manager.py  # ViewerManager tests (19 tests)
-    ├── test_layout.py                 # Layout tests
-    ├── test_models.py                 # Model tests
-    ├── test_ui.py                     # UI tests
-    └── test_utils.py                  # Utility tests
+    ├── conftest.py                 # Test fixtures
+    ├── test_constants.py           # Constants tests (25 tests)
+    ├── test_session_manager.py     # SessionManager tests (25 tests)
+    ├── test_panel_layout_manager.py # PanelLayoutManager tests (20 tests)
+    ├── test_niivue_viewer_manager.py # ViewerManager tests (19 tests)
+    ├── test_models.py              # Model tests
+    └── test_utils.py               # Utility tests
 ```
 
 ### Layer Architecture
 
 ```
 ┌─────────────────────────────────────┐
-│     Orchestration Layer             │
-│  layout.py                          │  <-- Main app orchestrator
+│     Entry Point Layer               │
+│  app.py / main.py                   │  <-- Streamlit & CLI entry
 └─────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────┐
-│     Component Layer                 │
-│  landing_page.py                    │  <-- UI components
-│  qc_viewer.py                       │
-│  pagination.py                      │
+│     Page Layer (pages/)             │
+│  landing_page.py                    │  <-- Full-page views
 │  congratulations_page.py            │
 └─────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────┐
-│     Manager Layer                   │
+│     Component Layer (components/)   │
+│  qc_viewer.py                       │  <-- Reusable components
+│  pagination.py                      │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│     Manager Layer (managers/)       │
 │  session_manager.py                 │  <-- Business logic
 │  niivue_viewer_manager.py           │
 │  panel_layout_manager.py            │
 └─────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────┐
-│     Utility & Config Layer          │
-│  constants.py                       │  <-- Configuration & utils
-│  utils.py                           │
-│  models.py                          │
+│     Utility & Model Layer           │
+│  models/ (qc_models.py)             │  <-- Data models
+│  utils/ (config, data_loaders, etc.)│  <-- Utilities
+│  constants.py                       │  <-- Configuration
 └─────────────────────────────────────┘
 ```
 
 ### Dependency Flow
 
 ```
-ui.py (entry)
-  ├─→ layout.py (orchestrator)
-  │     ├─→ landing_page.py
-  │     ├─→ qc_viewer.py
-  │     ├─→ pagination.py
-  │     └─→ congratulations_page.py
+app.py (entry)
+  ├─→ pages/
+  │    ├─→ landing_page.py
+  │    └─→ congratulations_page.py
   │
-  ├─→ session_manager.py (state abstraction)
-  ├─→ niivue_viewer_manager.py (viewer setup)
-  ├─→ panel_layout_manager.py (layout logic)
-  ├─→ constants.py (configuration)
-  └─→ models.py (data models)
+  ├─→ components/
+  │    ├─→ qc_viewer.py
+  │    └─→ pagination.py
+  │
+  ├─→ managers/
+  │    ├─→ session_manager.py (state)
+  │    ├─→ niivue_viewer_manager.py (config)
+  │    └─→ panel_layout_manager.py (layout)
+  │
+  ├─→ models/qc_models.py (data)
+  │
+  └─→ utils/ (config, data_loaders, etc.)
 
 NO CIRCULAR DEPENDENCIES ✓
 ```
@@ -361,33 +376,44 @@ NO CIRCULAR DEPENDENCIES ✓
 
 ## Key Files & Locations
 
+### Entry Points
+- [ui/app.py](ui/app.py) - Main Streamlit application
+- [ui/main.py](ui/main.py) - CLI entry point
+- [run_tests.sh](run_tests.sh) - Test runner script
+
+### Pages (Full-Page Views)
+- [ui/pages/landing_page.py](ui/pages/landing_page.py) - Onboarding and configuration
+- [ui/pages/congratulations_page.py](ui/pages/congratulations_page.py) - Results display
+
+### Components (Reusable UI)
+- [ui/components/qc_viewer.py](ui/components/qc_viewer.py) - QC viewer orchestration
+- [ui/components/pagination.py](ui/components/pagination.py) - Rating and pagination controls
+
+### Managers (Business Logic)
+- [ui/managers/session_manager.py](ui/managers/session_manager.py) - Session state management
+- [ui/managers/niivue_viewer_manager.py](ui/managers/niivue_viewer_manager.py) - Viewer configuration
+- [ui/managers/panel_layout_manager.py](ui/managers/panel_layout_manager.py) - Layout management
+
+### Models & Utilities
+- [ui/models/qc_models.py](ui/models/qc_models.py) - Pydantic data models
+- [ui/utils/config.py](ui/utils/config.py) - Configuration parsing
+- [ui/utils/data_loaders.py](ui/utils/data_loaders.py) - File I/O and data loading
+- [ui/utils/image_processing.py](ui/utils/image_processing.py) - Image utilities
+- [ui/utils/export.py](ui/utils/export.py) - Export utilities
+
 ### Configuration
-- [constants.py](ui/constants.py) - All constants and configuration
+- [ui/constants.py](ui/constants.py) - Global constants and messages
 - [requirements.txt](requirements.txt) - Runtime dependencies
 - [requirements-test.txt](requirements-test.txt) - Test dependencies
 
-### Entry Points
-- [ui/ui.py](ui/ui.py) - Main Streamlit application
-- [run_tests.sh](run_tests.sh) - Test runner script
-
-### Core Modules
-- [session_manager.py](ui/session_manager.py) - Session state abstraction
-- [niivue_viewer_manager.py](ui/niivue_viewer_manager.py) - Viewer initialization
-- [panel_layout_manager.py](ui/panel_layout_manager.py) - Layout compiler
-- [models.py](ui/models.py) - Data models (Pydantic)
-
-### Components
-- [landing_page.py](ui/landing_page.py) - Rater info & panel selection
-- [qc_viewer.py](ui/qc_viewer.py) - Viewer integration
-- [pagination.py](ui/pagination.py) - Rating form & pagination
-- [congratulations_page.py](ui/congratulations_page.py) - Results display
-
 ### Tests
-- [conftest.py](ui/tests/conftest.py) - Test fixtures
-- [test_session_manager.py](ui/tests/test_session_manager.py) - 25 tests
-- [test_panel_layout_manager.py](ui/tests/test_panel_layout_manager.py) - 20 tests
-- [test_niivue_viewer_manager.py](ui/tests/test_niivue_viewer_manager.py) - 19 tests
-- [test_constants.py](ui/tests/test_constants.py) - 25 tests
+- [ui/tests/conftest.py](ui/tests/conftest.py) - Test fixtures
+- [ui/tests/test_session_manager.py](ui/tests/test_session_manager.py) - SessionManager tests (25 tests)
+- [ui/tests/test_panel_layout_manager.py](ui/tests/test_panel_layout_manager.py) - Layout tests (20 tests)
+- [ui/tests/test_niivue_viewer_manager.py](ui/tests/test_niivue_viewer_manager.py) - Viewer tests (19 tests)
+- [ui/tests/test_constants.py](ui/tests/test_constants.py) - Constants tests (25 tests)
+- [ui/tests/test_models.py](ui/tests/test_models.py) - Model tests
+- [ui/tests/test_utils.py](ui/tests/test_utils.py) - Utility tests
 
 ### Documentation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Complete architecture guide
@@ -461,7 +487,7 @@ pytest ui/tests/ -n auto  # Uses all CPUs
 ### Slow Streamlit App?
 ```bash
 # Profile the app
-streamlit run ui/ui.py --logger.level=debug
+streamlit run ui/app.py --logger.level=debug
 
 # Check component rendering time
 # Look at SessionManager method times
@@ -516,7 +542,7 @@ help(SessionManager.set_rater_id)  # View docstring
 - `bash run_tests.sh all` - Run all tests
 - `pytest ui/tests/test_<module>.py -v` - Run specific test file
 - `pytest --cov=ui --cov-report=html` - Generate coverage report
-- `streamlit run ui/ui.py` - Run app locally
+- `streamlit run ui/app.py` - Run app locally
 
 **Key Files**:
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Understand the system
