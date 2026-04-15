@@ -20,7 +20,11 @@ class SessionManager:
             SESSION_KEYS['landing_page_complete']: False,
             SESSION_KEYS['selected_panels']: DEFAULT_PANELS.copy(),
             SESSION_KEYS['montage_max_rows']: DEFAULT_MONTAGE_MAX_ROWS,
-            SESSION_KEYS['montage_max_cols']: DEFAULT_MONTAGE_MAX_COLS
+            SESSION_KEYS['montage_max_cols']: DEFAULT_MONTAGE_MAX_COLS,
+            'autoplay_enabled': False,
+            'last_confirmed_page': 0,
+            'autoplay_countdown': 0,
+            'autoplay_start_time': 0.0
         }
         
         for key, value in defaults.items():
@@ -209,3 +213,53 @@ class SessionManager:
     def set_montage_max_cols(cols: int | None):
         """Set maximum columns for montage grid."""
         st.session_state[SESSION_KEYS['montage_max_cols']] = cols
+    
+    # Autoplay Methods
+    @staticmethod
+    def is_autoplay_enabled() -> bool:
+        """Check if autoplay is enabled."""
+        return st.session_state.get('autoplay_enabled', False)
+    
+    @staticmethod
+    def set_autoplay_enabled(enabled: bool):
+        """Set autoplay state."""
+        st.session_state['autoplay_enabled'] = enabled
+    
+    @staticmethod
+    def get_last_confirmed_page() -> int:
+        """Get the last page where user confirmed (clicked Confirm & Next)."""
+        return st.session_state.get('last_confirmed_page', 0)
+    
+    @staticmethod
+    def set_last_confirmed_page(page: int):
+        """Set the last page where user confirmed."""
+        st.session_state['last_confirmed_page'] = page
+    
+    # Autoplay Countdown Methods
+    @staticmethod
+    def get_autoplay_countdown() -> int:
+        """Get current autoplay countdown in seconds."""
+        return st.session_state.get('autoplay_countdown', 0)
+    
+    @staticmethod
+    def set_autoplay_countdown(seconds: int):
+        """Set autoplay countdown (in seconds)."""
+        st.session_state['autoplay_countdown'] = max(0, seconds)
+    
+    @staticmethod
+    def decrement_autoplay_countdown() -> int:
+        """Decrement countdown by 1 second and return the new value."""
+        current = SessionManager.get_autoplay_countdown()
+        new_value = max(0, current - 1)
+        SessionManager.set_autoplay_countdown(new_value)
+        return new_value
+
+    @staticmethod
+    def get_autoplay_start_time() -> float:
+        """Get the timestamp when the autoplay countdown started (0 = not running)."""
+        return st.session_state.get('autoplay_start_time', 0.0)
+
+    @staticmethod
+    def set_autoplay_start_time(t: float):
+        """Set the autoplay countdown start timestamp."""
+        st.session_state['autoplay_start_time'] = t

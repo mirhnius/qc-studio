@@ -120,6 +120,8 @@ MESSAGES = {
     'save_csv_button': '💾 Save QC results to CSV',
     'confirm_next_button': 'Confirm ✅️ and Next ▶️',
     'next_button': 'Next ▶️',
+    'play_button': '▶️ Play',
+    'pause_button': '⏸️ Pause',
     'back_landing_button': '🏠 Back to Landing Page',
     'niivue_header': '3D MRI\n(Niivue)',
     'niivue_controls_header': 'Niivue Controls',

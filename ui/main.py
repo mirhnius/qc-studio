@@ -92,6 +92,9 @@ def main():
         participant_id = None
     else:
         participant_id = participant_ids[current_page - 1]
+        # Ensure participant_id has "sub-" prefix
+        if participant_id and not participant_id.startswith("sub-"):
+            participant_id = f"sub-{participant_id}"
 
     session_id = "ses-01"
 

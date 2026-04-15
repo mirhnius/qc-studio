@@ -1,11 +1,12 @@
 """QC viewer component for displaying MRI, SVG, and metrics panels."""
 import streamlit as st
+import time
+from datetime import datetime
 from constants import SVG_HEIGHT, MESSAGES, ERROR_MESSAGES, QC_RATINGS, NIIVUE_SECONDARY_RATIO, VIEW_MODES, OVERLAY_COLORMAPS
 from utils.data_loaders import load_svg_data
 from managers.niivue_viewer_manager import NiivueViewerManager, NiivueViewerConfig
 from managers.session_manager import SessionManager
 from models import QCRecord
-from datetime import datetime
 
 
 def display_qc_viewers(
@@ -34,6 +35,27 @@ def display_qc_viewers(
 		total_participants: Total number of participants
 	"""
 	st.title("🧠 QC-Studio")
+	
+	# Autoplay: if the countdown timer has expired, advance page BEFORE rendering
+	# This ensures the NEW participant's qc_config is loaded on the next rerun
+	if SessionManager.is_autoplay_enabled():
+		start_time = SessionManager.get_autoplay_start_time()
+		if start_time > 0:
+			elapsed = time.time() - start_time
+			if elapsed >= 5:
+				if SessionManager.get_current_page() < total_participants:
+					# Save the current participant's QC record before advancing
+					_record_qc_for_current_participant(
+						participant_id, session_id, qc_pipeline, qc_task,
+						rating=st.session_state.get('qc_rating', QC_RATINGS[0]),
+						notes=SessionManager.get_notes()
+					)
+					SessionManager.next_page()
+					SessionManager.set_autoplay_start_time(time.time())  # Restart timer for next page
+				else:
+					SessionManager.set_autoplay_enabled(False)
+					SessionManager.set_autoplay_start_time(0.0)
+				st.rerun()  # Rerun now loads new participant's qc_config
 	
 	# Get selected panels and normalize naming for backward compatibility
 	selected_panels = SessionManager.get_selected_panels()
@@ -96,6 +118,14 @@ def display_qc_viewers(
 		# Full-width IQM only
 		elif show_iqm:
 			_display_iqm_panel()
+	
+	# Autoplay rerun loop: panels have now rendered; keep refreshing so the
+	# countdown display stays live and the timer expiry check fires on time
+	if SessionManager.is_autoplay_enabled():
+		start_time = SessionManager.get_autoplay_start_time()
+		if start_time > 0:
+			time.sleep(0.1)
+			st.rerun()
 
 
 def _display_niivue_with_secondary_panel(dataset_dir, selected_panels: dict, qc_config,
@@ -287,7 +317,7 @@ def _display_pagination_in_sidebar(
 	qc_pipeline: str,
 	qc_task: str
 ) -> None:
-	"""Display pagination controls in the left sidebar.
+	"""Display pagination controls in the left sidebar with autoplay support.
 	
 	Args:
 		current_page: Current page number
@@ -300,6 +330,33 @@ def _display_pagination_in_sidebar(
 	st.markdown("#### 📄 Navigation")
 	st.write(f"**Participant {current_page} of {total_participants}**")
 	
+	# Autoplay controls (play/pause buttons)
+	autoplay_col1, autoplay_col2 = st.columns([1, 1])
+	with autoplay_col1:
+		if st.button(MESSAGES['play_button'], use_container_width=True, key="autoplay_play"):
+			SessionManager.set_autoplay_enabled(True)
+			SessionManager.set_autoplay_start_time(time.time())  # Start countdown immediately
+			st.rerun()
+	
+	with autoplay_col2:
+		if st.button(MESSAGES['pause_button'], use_container_width=True, key="autoplay_pause"):
+			SessionManager.set_autoplay_enabled(False)
+			SessionManager.set_autoplay_start_time(0.0)  # Reset timer
+			st.rerun()
+	
+	# Display countdown timer if autoplay is active
+	if SessionManager.is_autoplay_enabled():
+		start_time = SessionManager.get_autoplay_start_time()
+		if start_time > 0:
+			elapsed = time.time() - start_time
+			countdown = max(0, 5 - int(elapsed))
+			st.markdown(f"## ⏱️ Next page in: **{countdown}s**")
+		else:
+			st.info("⏸️ Autoplay active")
+	
+	st.divider()
+	
+	# Main pagination controls
 	pag_col1, pag_col2, pag_col3 = st.columns([1, 1, 1])
 	
 	with pag_col1:
@@ -309,7 +366,17 @@ def _display_pagination_in_sidebar(
 	
 	with pag_col2:
 		if st.button(MESSAGES['confirm_next_button'], use_container_width=True, key="pag_confirm"):
-			SessionManager.next_page()
+			rating = st.session_state.get('qc_rating', QC_RATINGS[0])
+			notes = SessionManager.get_notes()
+			_record_qc_for_current_participant(
+				participant_id, session_id, qc_pipeline, qc_task, rating, notes
+			)
+			SessionManager.set_last_confirmed_page(current_page)
+			if SessionManager.is_autoplay_enabled():
+				# Start the countdown timer; autoplay logic advances the page when it expires
+				SessionManager.set_autoplay_start_time(time.time())
+			else:
+				SessionManager.next_page()
 			st.rerun()
 	
 	with pag_col3:
@@ -358,9 +425,17 @@ def _save_qc_record(participant_id: str, session_id: str, qc_pipeline: str,
 		notes: QC notes
 		total_participants: Total participants (used to detect end of QC)
 	"""
+	_record_qc_for_current_participant(participant_id, session_id, qc_pipeline, qc_task, rating, notes)
+	SessionManager.set_current_page(total_participants + 1)
+	st.rerun()
+
+
+def _record_qc_for_current_participant(participant_id: str, session_id: str,
+										 qc_pipeline: str, qc_task: str,
+										 rating: str, notes: str) -> None:
+	"""Save a QC record for the current participant without navigating."""
 	now = datetime.now()
 	timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
-	
 	record = QCRecord(
 		participant_id=participant_id,
 		session_id=session_id,
@@ -373,7 +448,4 @@ def _save_qc_record(participant_id: str, session_id: str, qc_pipeline: str,
 		final_qc=rating,
 		notes=notes,
 	)
-	
 	SessionManager.add_qc_record(record)
-	SessionManager.set_current_page(total_participants + 1)
-	st.rerun()

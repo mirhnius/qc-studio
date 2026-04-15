@@ -62,6 +62,8 @@ def _display_pagination_controls(
 		notes: QC notes
 	"""
 	st.write(f"Participant {current_page} of {total_participants}")
+	
+	# Main pagination controls
 	col1, col2, col3 = st.columns([1, 1, 1])
 	
 	with col1:
@@ -95,6 +97,8 @@ def _save_and_advance(participant_id: str, session_id: str, qc_pipeline: str,
 					   qc_task: str, rating: str, notes: str) -> None:
 	"""Save QC record and advance to next participant.
 	
+	Also marks this page as confirmed so autoplay can proceed.
+	
 	Args:
 		participant_id: Participant ID
 		session_id: Session ID
@@ -120,5 +124,10 @@ def _save_and_advance(participant_id: str, session_id: str, qc_pipeline: str,
 	)
 	
 	SessionManager.add_qc_record(record)
+	
+	# Mark current page as confirmed so autoplay knows it can advance from here
+	current_page = SessionManager.get_current_page()
+	SessionManager.set_last_confirmed_page(current_page)
+	
 	SessionManager.next_page()
 	st.rerun()
