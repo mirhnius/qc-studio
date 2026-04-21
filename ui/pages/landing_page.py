@@ -4,7 +4,7 @@ import streamlit as st
 from constants import (
     EXPERIENCE_LEVELS, FATIGUE_LEVELS, PANEL_CONFIG, UPLOAD_FILE_TYPES,
     MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, INFO_MESSAGES, SVG_HEIGHT,
-    MIN_MONTAGE_GRID_SIZE, MAX_MONTAGE_GRID_SIZE
+    MIN_MONTAGE_GRID_SIZE, MAX_MONTAGE_GRID_SIZE, QC_DEDUP_KEYS
 )
 from managers.session_manager import SessionManager
 from models import QCRecord
@@ -28,6 +28,7 @@ def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 		participants_df = pd.read_csv(participant_list, delimiter="\t")
 		total_participants_in_ds = len(participants_df['participant_id'].unique())
 		participant_ids_in_ds = set(participants_df['participant_id'].unique())
+		participant_ids_ordered = participants_df['participant_id'].tolist()
 	except Exception as e:
 		st.error(ERROR_MESSAGES['participant_list_load_error'].format(error=e))
 		return
@@ -51,7 +52,7 @@ def show_landing_page(qc_pipeline, qc_task, out_dir, participant_list) -> None:
 	
 	# Right column: CSV Upload
 	with col3:
-		_display_csv_upload(participant_ids_in_ds, total_participants_in_ds)
+		_display_csv_upload(participant_ids_in_ds, total_participants_in_ds, participant_ids_ordered)
 	
 	st.markdown("---")
 	
@@ -100,7 +101,7 @@ def _display_rater_form() -> None:
 			step=1
 		)
 		
-		submit_rater = st.form_submit_button(MESSAGES['rater_form_button'], use_container_width=True)
+		submit_rater = st.form_submit_button(MESSAGES['rater_form_button'], width='stretch')
 		
 		if submit_rater:
 			if not rater_id_clean:
@@ -116,12 +117,13 @@ def _display_rater_form() -> None:
 				st.rerun()
 
 
-def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: int) -> None:
+def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: int, all_participant_ids: list) -> None:
 	"""Render CSV upload section in the landing page.
 	
 	Args:
 		participant_ids_in_ds: Set of participant IDs in dataset
 		total_participants_in_ds: Total number of participants in dataset
+		all_participant_ids: Ordered list of participant IDs from the participant file
 	"""
 	st.subheader(MESSAGES['upload_header'])
 	st.info(MESSAGES['upload_help'])
@@ -136,6 +138,12 @@ def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: in
 		try:
 			# Read the uploaded file				
 			df = pd.read_csv(uploaded_file, sep=None, engine='python')
+
+			# Deduplicate rows by QC_DEDUP_KEYS (keeping most recent record per participant)
+			dedup_cols = [k for k in QC_DEDUP_KEYS if k in df.columns]
+			if dedup_cols:
+				df[dedup_cols] = df[dedup_cols].astype(str)
+				df = df.drop_duplicates(subset=dedup_cols, keep='last').reset_index(drop=True)
 			
 			st.success(SUCCESS_MESSAGES['csv_loaded'].format(
 				count=len(df),
@@ -198,10 +206,10 @@ def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: in
 			
 			# Display preview
 			st.subheader(INFO_MESSAGES['preview_header'])
-			st.dataframe(df.head(10), use_container_width=True)
+			st.dataframe(df.head(10), width='stretch')
 			
 			# Option to load these records
-			if st.button(INFO_MESSAGES['load_records_button'], use_container_width=True):
+			if st.button(INFO_MESSAGES['load_records_button'], width='stretch'):
 				# Convert dataframe rows to QCRecord objects
 				loaded_records = []
 				for _, row in df.iterrows():
@@ -220,6 +228,16 @@ def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: in
 					loaded_records.append(record)
 				
 				SessionManager.set_qc_records(loaded_records)
+				# Sort participant list: rated participants first, unrated after
+				rated_ids = set(df['participant_id'].astype(str).unique())
+				sorted_ids = (
+					[pid for pid in all_participant_ids if str(pid) in rated_ids] +
+					[pid for pid in all_participant_ids if str(pid) not in rated_ids]
+				)
+				SessionManager.set_participant_ids(sorted_ids)
+				# Jump to the first unrated participant
+				next_page = len(rated_ids) + 1
+				SessionManager.set_current_page(min(next_page, total_participants_in_ds))
 				st.success(SUCCESS_MESSAGES['records_loaded'].format(count=len(loaded_records)))
 				st.info(INFO_MESSAGES['proceed_with_form'])
 				
@@ -327,7 +345,7 @@ def _display_montage_settings() -> None:
 			)
 			use_auto_cols = st.checkbox("Auto-calculate columns", value=(current_cols is None))
 		
-		submit_montage = st.form_submit_button("Apply Montage Settings", use_container_width=True)
+		submit_montage = st.form_submit_button("Apply Montage Settings", width='stretch')
 		
 		if submit_montage:
 			# Set to None if auto-calculate is checked, otherwise use the specified value

@@ -48,7 +48,7 @@ def display_qc_viewers(
 					# Save the current participant's QC record before advancing
 					_record_qc_for_current_participant(
 						participant_id, session_id, qc_pipeline, qc_task,
-						rating=st.session_state.get('qc_rating', QC_RATINGS[0]),
+						rating=st.session_state.get(f'qc_rating_{SessionManager.get_rating_version()}', QC_RATINGS[0]),
 						notes=SessionManager.get_notes()
 					)
 					SessionManager.next_page()
@@ -305,8 +305,17 @@ def _display_qc_rating_form(
 	
 	# QC Rating section
 	st.markdown("#### 📊 QC Rating")
-	rating = st.radio(MESSAGES['qc_rating_prompt'], options=QC_RATINGS, index=0, key="qc_rating")
-	notes = st.text_area(MESSAGES['qc_notes_prompt'], value=SessionManager.get_notes(), key="qc_notes", height=120)
+	existing_record = SessionManager.get_qc_record_for_participant(participant_id, session_id)
+	if existing_record:
+		existing_rating = existing_record.final_qc if hasattr(existing_record, 'final_qc') else existing_record.get('final_qc', QC_RATINGS[0])
+		initial_rating = existing_rating if existing_rating in QC_RATINGS else QC_RATINGS[0]
+		initial_notes = existing_record.notes if hasattr(existing_record, 'notes') else existing_record.get('notes', '')
+		initial_notes = initial_notes or ''
+	else:
+		initial_rating = QC_RATINGS[0]
+		initial_notes = ''
+	rating = st.radio(MESSAGES['qc_rating_prompt'], options=QC_RATINGS, index=QC_RATINGS.index(initial_rating), key=f"qc_rating_{SessionManager.get_rating_version()}")
+	notes = st.text_area(MESSAGES['qc_notes_prompt'], value=initial_notes, key=f"qc_notes_{SessionManager.get_notes_version()}", height=120)
 	SessionManager.set_notes(notes)
 
 
@@ -334,13 +343,13 @@ def _display_pagination_in_sidebar(
 	# Autoplay controls (play/pause buttons)
 	autoplay_col1, autoplay_col2 = st.columns([1, 1])
 	with autoplay_col1:
-		if st.button(MESSAGES['play_button'], use_container_width=True, key="autoplay_play"):
+		if st.button(MESSAGES['play_button'], width='content', key="autoplay_play"):
 			SessionManager.set_autoplay_enabled(True)
 			SessionManager.set_autoplay_start_time(time.time())  # Start countdown immediately
 			st.rerun()
 	
 	with autoplay_col2:
-		if st.button(MESSAGES['pause_button'], use_container_width=True, key="autoplay_pause"):
+		if st.button(MESSAGES['pause_button'], width='content', key="autoplay_pause"):
 			SessionManager.set_autoplay_enabled(False)
 			SessionManager.set_autoplay_start_time(0.0)  # Reset timer
 			st.rerun()
@@ -362,13 +371,13 @@ def _display_pagination_in_sidebar(
 	pag_col1, pag_col2, pag_col3 = st.columns([1, 1, 1])
 	
 	with pag_col1:
-		if st.button(MESSAGES['previous_button'], use_container_width=True, key="pag_prev"):
+		if st.button(MESSAGES['previous_button'], width='content', key="pag_prev"):
 			SessionManager.previous_page()
 			st.rerun()
 	
 	with pag_col2:
-		if st.button(MESSAGES['confirm_next_button'], use_container_width=True, key="pag_confirm"):
-			rating = st.session_state.get('qc_rating', QC_RATINGS[0])
+		if st.button(MESSAGES['confirm_next_button'], width='content', key="pag_confirm"):
+			rating = st.session_state.get(f'qc_rating_{SessionManager.get_rating_version()}', QC_RATINGS[0])
 			notes = SessionManager.get_notes()
 			_record_qc_for_current_participant(
 				participant_id, session_id, qc_pipeline, qc_task, rating, notes
@@ -381,15 +390,15 @@ def _display_pagination_in_sidebar(
 			st.rerun()
 	
 	with pag_col3:
-		if st.button(MESSAGES['next_button'], use_container_width=True, key="pag_next"):
+		if st.button(MESSAGES['next_button'], width='content', key="pag_next"):
 			SessionManager.next_page()
 			st.rerun()
 	
 	st.divider()
 	
 	# Save QC results to CSV button
-	if st.button(MESSAGES['save_csv_button'], use_container_width=True, key="pag_save_csv"):
-		rating = st.session_state.get('qc_rating', QC_RATINGS[0])
+	if st.button(MESSAGES['save_csv_button'], width='content', key="pag_save_csv"):
+		rating = st.session_state.get(f'qc_rating_{SessionManager.get_rating_version()}', QC_RATINGS[0])
 		notes = SessionManager.get_notes()
 		_save_qc_record(
 			participant_id=participant_id,
@@ -402,7 +411,7 @@ def _display_pagination_in_sidebar(
 		)
 	
 	st.divider()
-	if st.button(MESSAGES['back_landing_button'], use_container_width=True, key="pag_landing"):
+	if st.button(MESSAGES['back_landing_button'], width='content', key="pag_landing"):
 		SessionManager.set_landing_page_complete(False)
 		st.rerun()
 
