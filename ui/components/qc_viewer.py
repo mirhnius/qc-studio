@@ -1,4 +1,5 @@
 """QC viewer component for displaying MRI, SVG, and metrics panels."""
+import re
 import streamlit as st
 import time
 from datetime import datetime
@@ -7,6 +8,24 @@ from utils.data_loaders import load_svg_data
 from managers.niivue_viewer_manager import NiivueViewerManager, NiivueViewerConfig
 from managers.session_manager import SessionManager
 from models import QCRecord
+
+
+def _clean_filename(filename: str) -> str:
+	"""Return a compact tab label from an internal image key."""
+	# Functional-style names: ses/task/run are the most informative tokens.
+	pattern = r'((?:ses-[^_]+_)?(?:task-[^_]+_?)?(?:run-[^_]+)?)'
+	match = re.search(pattern, filename)
+	if match and match.group(1):
+		clean_label = match.group(1).strip('_')
+		if clean_label:
+			return clean_label
+
+	# Remove extension suffix added during key construction.
+	clean = re.sub(r'_(svg|png|jpeg)$', '', filename)
+	# For anatomy-like keys, strip subject-prefixed path fragments.
+	if 'sub-' in clean:
+		clean = re.sub(r'^.*sub-[^_]+_', '', clean)
+	return clean or filename
 
 
 def display_qc_viewers(
@@ -240,7 +259,8 @@ def _display_svg_panel(dataset_dir, qc_config) -> None:
 	if image_data:
 		# If multiple images, create tabs
 		if len(image_data) > 1:
-			tabs = st.tabs(list(image_data.keys()))
+			tab_names = [_clean_filename(f) for f in image_data.keys()]
+			tabs = st.tabs(tab_names)
 			for tab, (filename, data) in zip(tabs, image_data.items()):
 				with tab:
 					_render_image(data, filename)
@@ -305,7 +325,7 @@ def _display_qc_rating_form(
 	
 	# QC Rating section
 	st.markdown("#### 📊 QC Rating")
-	existing_record = SessionManager.get_qc_record_for_participant(participant_id, session_id)
+	existing_record = SessionManager.get_qc_record_for_participant(participant_id, session_id, qc_task)
 	if existing_record:
 		existing_rating = existing_record.final_qc if hasattr(existing_record, 'final_qc') else existing_record.get('final_qc', QC_RATINGS[0])
 		initial_rating = existing_rating if existing_rating in QC_RATINGS else QC_RATINGS[0]
@@ -343,13 +363,13 @@ def _display_pagination_in_sidebar(
 	# Autoplay controls (play/pause buttons)
 	autoplay_col1, autoplay_col2 = st.columns([1, 1])
 	with autoplay_col1:
-		if st.button(MESSAGES['play_button'], width='content', key="autoplay_play"):
+		if st.button(MESSAGES['play_button'], width='stretch', key="autoplay_play"):
 			SessionManager.set_autoplay_enabled(True)
 			SessionManager.set_autoplay_start_time(time.time())  # Start countdown immediately
 			st.rerun()
 	
 	with autoplay_col2:
-		if st.button(MESSAGES['pause_button'], width='content', key="autoplay_pause"):
+		if st.button(MESSAGES['pause_button'], width='stretch', key="autoplay_pause"):
 			SessionManager.set_autoplay_enabled(False)
 			SessionManager.set_autoplay_start_time(0.0)  # Reset timer
 			st.rerun()
@@ -371,12 +391,12 @@ def _display_pagination_in_sidebar(
 	pag_col1, pag_col2, pag_col3 = st.columns([1, 1, 1])
 	
 	with pag_col1:
-		if st.button(MESSAGES['previous_button'], width='content', key="pag_prev"):
+		if st.button(MESSAGES['previous_button'], width='stretch', key="pag_prev"):
 			SessionManager.previous_page()
 			st.rerun()
 	
 	with pag_col2:
-		if st.button(MESSAGES['confirm_next_button'], width='content', key="pag_confirm"):
+		if st.button(MESSAGES['confirm_next_button'], width='stretch', key="pag_confirm"):
 			rating = st.session_state.get(f'qc_rating_{SessionManager.get_rating_version()}', QC_RATINGS[0])
 			notes = SessionManager.get_notes()
 			_record_qc_for_current_participant(
@@ -390,7 +410,7 @@ def _display_pagination_in_sidebar(
 			st.rerun()
 	
 	with pag_col3:
-		if st.button(MESSAGES['next_button'], width='content', key="pag_next"):
+		if st.button(MESSAGES['next_button'], width='stretch', key="pag_next"):
 			SessionManager.next_page()
 			st.rerun()
 	

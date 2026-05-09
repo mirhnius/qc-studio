@@ -214,8 +214,8 @@ class SessionManager:
         st.session_state[SESSION_KEYS['participant_order']] = ids
 
     @staticmethod
-    def get_qc_record_for_participant(participant_id: str, session_id: str):
-        """Return the most recent QCRecord for a given participant/session, or None.
+    def get_qc_record_for_participant(participant_id: str, session_id: str, qc_task: str = None):
+        """Return the most recent QCRecord for a given participant/session/task, or None.
         
         Normalises sub-/ses- prefixes and leading zeros so that records saved
         during a session (e.g. sub-QPNNC000421 / ses-01) match records loaded
@@ -232,6 +232,9 @@ class SessionManager:
         for record in reversed(SessionManager.get_qc_records()):
             rec_pid = record.participant_id if hasattr(record, 'participant_id') else record.get('participant_id', '')
             rec_sid = record.session_id if hasattr(record, 'session_id') else record.get('session_id', '')
+            rec_task = record.qc_task if hasattr(record, 'qc_task') else record.get('qc_task', '')
+            if qc_task is not None and str(rec_task) != str(qc_task):
+                continue
             if _bare(str(rec_pid), "sub-") == bare_pid and _bare(str(rec_sid), "ses-") == bare_sid:
                 return record
         return None
