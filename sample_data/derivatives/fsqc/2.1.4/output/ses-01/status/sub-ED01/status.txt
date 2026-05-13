@@ -1,0 +1,9 @@
+subject:sub-ED01
+metrics:0
+shape:2
+screenshots:0
+surfaces:0
+skullstrip:0
+fornix:2
+hypothalamus:0
+hippocampus:0
