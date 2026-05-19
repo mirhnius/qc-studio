@@ -29,8 +29,8 @@ PANEL_CONFIG = {
         'default': True
     },
     'svg': {
-        'label': '📊 SVG Montage',
-        'description': 'Display SVG montage visualization',
+        'label': '📊 Montage',
+        'description': 'Display 2D image montage visualization',
         'default': True
     },
     'iqm': {
@@ -131,7 +131,7 @@ MESSAGES = {
     'back_landing_button': '🏠 Back to Landing Page',
     'niivue_header': '3D MRI\n(Niivue)',
     'niivue_controls_header': 'Niivue Controls',
-    'svg_header': 'SVG Montage',
+    'svg_header': 'Montage',
     'metrics_header': 'QC Metrics',
     'view_mode_label': 'View Mode',
     'overlay_colormap_label': 'Overlay Colormap',
@@ -154,7 +154,7 @@ ERROR_MESSAGES = {
     'csv_comparison_error': 'Could not display comparison: {error}',
     'mri_load_error': 'Failed to load base MRI in Niivue viewer: {error}',
     'base_mri_not_found': 'Base MRI image not found or could not be loaded.',
-    'svg_not_found': 'SVG montage not found or could not be loaded.',
+    'svg_not_found': 'Montage not found or could not be loaded.',
     'participant_list_load_error': 'Error loading participant list: {error}'
 }
 

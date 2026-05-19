@@ -44,7 +44,7 @@ ui/
 │   ├── __init__.py
 │   ├── config.py                # QC Config Parsing (60+ lines)
 │   ├── data_loaders.py          # Data Loading & File I/O (220+ lines)
-│   ├── image_processing.py      # Image Montage Creation (145+ lines)
+│   ├── image_processing.py      # Montage Image Processing (145+ lines)
 │   └── export.py                # CSV Export (80+ lines)
 │
 └── tests/                        # Comprehensive Test Suite
@@ -149,7 +149,7 @@ Pages represent complete, full-width views shown at different stages of the QC w
 
 **Data Flow**:
 1. User enters rater information
-2. User selects which panels to display (Niivue, SVG, IQM)
+2. User selects which panels to display (Niivue, Montage, IQM)
 3. User optionally uploads CSV of previous QC records
 4. SessionManager stores all state
 5. Continue to QC viewers page
@@ -178,18 +178,18 @@ Pages represent complete, full-width views shown at different stages of the QC w
 Components are reusable UI building blocks that can appear within pages.
 
 #### `components/qc_viewer.py` (350+ lines)
-**Responsibility**: Orchestrate QC viewer display (Niivue, SVG, IQM panels)
+**Responsibility**: Orchestrate QC viewer display (Niivue, Montage, IQM panels)
 
 **Public Functions**:
 - `display_qc_viewers(dataset_dir, qc_config, participant_id, session_id, qc_pipeline, qc_task, total_participants)`
   - Main QC viewer orchestration
-  - Renders Niivue viewer with optional SVG/IQM panels
+  - Renders Niivue viewer with optional Montage/IQM panels
   - Handles panel layout based on user selection
 
 **Layout Classes**:
 - `_display_niivue_full_width()` - Single-column Niivue viewer
-- `_display_niivue_with_secondary_panel()` - Two-column layout (Niivue + SVG/IQM)
-- `_display_svg_panel()` - SVG montage with tab support
+- `_display_niivue_with_secondary_panel()` - Two-column layout (Niivue + Montage/IQM)
+- `_display_svg_panel()` - Montage panel with tab support for SVG, PNG, and JPG/JPEG images
 - `_display_iqm_panel()` - IQM metrics display
 - `_display_qc_rating_form()` - Fixed QC rating column
 
@@ -222,7 +222,7 @@ Components are reusable UI building blocks that can appear within pages.
 ---
 
 #### `qc_viewer.py` (79 lines)
-**Responsibility**: Orchestrate viewer display (Niivue, SVG, IQM)
+**Responsibility**: Orchestrate viewer display (Niivue, Montage, IQM)
 
 **Public Functions**:
 - `display_qc_viewers(qc_config)` - Main viewer orchestration
@@ -231,7 +231,7 @@ Components are reusable UI building blocks that can appear within pages.
 
 **Private Functions**:
 - `_display_niivue_section()` - Niivue with controls
-- `_display_svg_and_iqm()` - SVG and metrics panels
+- `_display_svg_and_iqm()` - Montage and metrics panels
 
 **Dependencies**: 
 - NiivueViewerManager (viewer configuration and rendering)
@@ -394,7 +394,7 @@ Managers handle complex application logic and provide structured access to funct
    - timestamp (auto-set)
 3. **QCTask** - Single task configuration from qc.json
    - base_mri_image_path, overlay_mri_image_path
-   - svg_montage_path (list of montage paths)
+   - svg_montage_path (list of 2D montage image paths: SVG, PNG, JPG/JPEG)
    - iqm_path (IQM metrics file)
 4. **QCConfig** - Top-level qc.json root model (RootModel mapping task names to QCTask)
 5. **QCStatusRow** - Export row format for CSV
@@ -437,7 +437,7 @@ Utilities are organized by domain with focused responsibilities.
 ---
 
 #### `utils/data_loaders.py` (220+ lines)
-**Responsibility**: File loading and data retrieval for all image types
+**Responsibility**: File loading and data retrieval for MRI, montage images, and IQM metrics
 
 **Key Functions**:
 
@@ -446,7 +446,7 @@ Utilities are organized by domain with focused responsibilities.
    - Returns: {"base_mri_image_bytes": bytes, "base_mri_image_path": Path, ...}
 
 2. **load_svg_data(dataset_dir, path_dict, max_montage_rows, max_montage_cols) → dict**
-   - Load SVG, PNG, JPEG montage images
+   - Load 2D montage images: SVG, PNG, JPG/JPEG
    - Create grid montage from all images
    - Returns: {"montage": PIL.Image, "file1": PIL.Image, "file2": PIL.Image, ...}
    - SVG files returned as HTML strings, raster as PIL Images
@@ -472,7 +472,7 @@ Utilities are organized by domain with focused responsibilities.
    - Auto-calculates rows/cols for aspect ratio ≈ 1:1
    - Respects max_rows/max_cols constraints
    - Accepts mixed PIL Images and file paths
-   - Handles SVG conversion and resizing
+   - Handles SVG conversion, raster image loading, and resizing
 
 **Parameters**:
 - `images`: List of PIL.Image or file paths (str/Path)
@@ -539,7 +539,7 @@ START
   │   ├─→ show_landing_page() displays onboarding UI
   │   ├─→ User enters rater info (ID, experience, fatigue)
   │   ├─→ SessionManager.set_rater_*() stores rater data
-  │   ├─→ User selects panels (niivue, svg, iqm)
+  │   ├─→ User selects panels (niivue, montage, iqm)
   │   ├─→ SessionManager.set_panel_selection() stores selection
   │   ├─→ (Optional) User uploads previous QC results CSV
   │   ├─→ SessionManager.set_qc_records() loads previous records
@@ -550,7 +550,7 @@ START
   │
   ├─→ components/qc_viewer.py (Viewer Orchestration)
   │   ├─→ display_qc_viewers() receives qc_config and dataset_dir
-  │   ├─→ load_svg_data() from utils loads SVG/image files
+  │   ├─→ load_svg_data() from utils loads from utils loads montage image files (SVG, PNG, JPG/JPEG)
   │   ├─→ Get selected_panels from SessionManager
   │   ├─→ Based on panel selection, render layout:
   │   │
@@ -562,18 +562,18 @@ START
   │   │   │       ├─→ User selects: view_mode, overlay_colormap, etc.
   │   │   │       └─→ NiivueViewerConfig updated
   │   │   └─→ Right column:
-  │   │       ├─→ If svg_selected: _display_svg_panel() with tabs
+  │   │       ├─→ If montage_selected: _display_svg_panel() with tabs
   │   │       └─→ If iqm_selected: _display_iqm_panel()
   │   │
   │   ├─→ If niivue full-width:
   │   │   ├─→ Full width Niivue viewer
   │   │   └─→ Controls in expander
   │   │
-  │   └─→ SVG Panel (_display_svg_panel)
+  │   └─→ Montage Panel (_display_svg_panel)
   │       ├─→ load_svg_data() returns dict with montage + individual images
   │       ├─→ If multiple images: create tabs
   │       ├─→ First tab: grid montage (created by utils/image_processing.py)
-  │       ├─→ Other tabs: individual SVG/PNG/JPEG files
+  │       ├─→ Other tabs: individual SVG, PNG, or JPG/JPEG files
   │       └─→ Render using st.image() or st.components.v1.html()
   │
   ├─→ components/pagination.py (Rating & Controls)

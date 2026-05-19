@@ -281,7 +281,7 @@ def _display_csv_upload(participant_ids_in_ds: set, total_participants_in_ds: in
 def _display_panel_layout_preview(selected_panels: dict) -> None:
 	"""Display a preview of the panel layout based on selected panels.
 	
-	When Niivue is selected: Shows 3-column layout (controls | Niivue | SVG/IQM)
+	When Niivue is selected: Shows 3-column layout (controls | Niivue | Montage/IQM)
 	When Niivue is not selected: Shows full-width layout
 	
 	Args:
@@ -310,7 +310,7 @@ def _display_panel_layout_preview(selected_panels: dict) -> None:
 			st.info("🧠 **Niivue Viewer**\n\n3D MRI data will be displayed here")
 		
 		with panel_col:
-			secondary = "📊 **SVG Montage**" if show_svg else "📈 **QC Metrics**"
+			secondary = "📊 **Montage**" if show_svg else "📈 **QC Metrics**"
 			st.info(f"{secondary}\n\nSecondary visualization will be displayed here")
 	
 	# Full-width Niivue only
@@ -324,10 +324,10 @@ def _display_panel_layout_preview(selected_panels: dict) -> None:
 		with right_col:
 			st.info("🧠 **Niivue Viewer**\n\n3D MRI data will be displayed here")
 	
-	# Full-width SVG only
+	# Full-width Montage only
 	elif show_svg:
-		st.write("**Layout:** Full-width (SVG Montage)")
-		st.info("📊 **SVG Montage**\n\nSVG visualization will be displayed across the full width")
+		st.write("**Layout:** Full-width (Montage)")
+		st.info("📊 **Montage**\n\nimage montage files (SVG, PNG, JPG/JPEG) will be displayed across the full width")
 	
 	# Full-width IQM only
 	elif show_iqm:
@@ -338,10 +338,10 @@ def _display_panel_layout_preview(selected_panels: dict) -> None:
 def _display_montage_settings() -> None:
 	"""Render montage grid configuration settings.
 	
-	Allows users to specify maximum rows and columns for the SVG montage grid.
+	Allows users to specify maximum rows and columns for the montage grid.
 	When both are set to None (auto), the montage will optimize for square aspect ratio.
 	"""
-	st.markdown("#### 🎨 SVG Montage Grid Settings")
+	st.markdown("#### 🎨 Montage Grid Settings")
 	
 	with st.form("montage_settings_form"):
 		col1, col2 = st.columns(2)
@@ -354,7 +354,7 @@ def _display_montage_settings() -> None:
 				max_value=MAX_MONTAGE_GRID_SIZE,
 				value=current_rows if current_rows else MIN_MONTAGE_GRID_SIZE,
 				step=1,
-				help="Maximum number of rows in the SVG montage grid"
+				help="Maximum number of rows in the montage grid"
 			)
 			use_auto_rows = st.checkbox("Auto-calculate rows", value=(current_rows is None))
 		
@@ -366,7 +366,7 @@ def _display_montage_settings() -> None:
 				max_value=MAX_MONTAGE_GRID_SIZE,
 				value=current_cols if current_cols else MIN_MONTAGE_GRID_SIZE,
 				step=1,
-				help="Maximum number of columns in the SVG montage grid"
+				help="Maximum number of columns in the montage grid"
 			)
 			use_auto_cols = st.checkbox("Auto-calculate columns", value=(current_cols is None))
 		

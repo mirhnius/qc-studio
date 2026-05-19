@@ -56,11 +56,11 @@ class QCTask(BaseModel):
     base_mri_image_path: Annotated[Optional[Path], Field(description="Path to base MRI image")] = None
     overlay_mri_image_path: Annotated[Optional[Path], Field(description="Path to overlay MRI image (mask etc.)")] = None
 
-    # List of paths for svg montages
-    svg_montage_path: Annotated[Optional[List[Path]], Field(description="List of paths to SVG montages for visual QC")] = None
+    # List of paths for montages
+    svg_montage_path: Annotated[Optional[List[Path]], Field(description="List of paths to 2D montage images for visual QC (SVG, PNG, JPG/JPEG)")] = None
 
     # Path for IQMs or other QC files (e.g. CSV, JSON)
-    iqm_path: Annotated[Optional[Path], Field(description="Path to an IQM or other QC SVG/file")] = None
+    iqm_path: Annotated[Optional[Path], Field(description="Path to an IQM or other QC images/file")] = None
 
 
 class QCConfig(RootModel[Dict[str, QCTask]]):

@@ -1,6 +1,6 @@
 """Data loading utilities for QC Studio.
 
-This module provides functions for loading MRI data, SVG montages, and IQM metrics
+This module provides functions for loading MRI data, montages, and IQM metrics
 from files and directories.
 """
 
