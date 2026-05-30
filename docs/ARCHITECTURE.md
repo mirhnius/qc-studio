@@ -550,7 +550,7 @@ START
   │
   ├─→ components/qc_viewer.py (Viewer Orchestration)
   │   ├─→ display_qc_viewers() receives qc_config and dataset_dir
-  │   ├─→ load_svg_data() from utils loads from utils loads montage image files (SVG, PNG, JPG/JPEG)
+  │   ├─→ load_svg_data() from utils loads montage image files (SVG, PNG, JPG/JPEG)
   │   ├─→ Get selected_panels from SessionManager
   │   ├─→ Based on panel selection, render layout:
   │   │
