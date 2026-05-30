@@ -327,7 +327,7 @@ def _display_panel_layout_preview(selected_panels: dict) -> None:
 	# Full-width Montage only
 	elif show_svg:
 		st.write("**Layout:** Full-width (Montage)")
-		st.info("📊 **Montage**\n\nimage montage files (SVG, PNG, JPG/JPEG) will be displayed across the full width")
+		st.info("📊 **Montage**\n\n2D montage image files (SVG, PNG, JPG/JPEG) will be displayed across the full width")
 	
 	# Full-width IQM only
 	elif show_iqm:
